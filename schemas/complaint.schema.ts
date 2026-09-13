@@ -130,3 +130,20 @@ export const createPresetSchema = z.object({
 
 export type CreatePresetInput = z.infer<typeof createPresetSchema>;
 
+// ─────────────────────────────────────────────────────────────
+// PUBLIC TRACKING
+// ─────────────────────────────────────────────────────────────
+
+export const trackComplaintSchema = z.object({
+  complaintNumber: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(
+      /^CMP-\d{4}-\d{6}$/,
+      "Use a complaint number like CMP-2026-000001"
+    ),
+});
+
+export type TrackComplaintInput = z.infer<typeof trackComplaintSchema>;
+

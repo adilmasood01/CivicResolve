@@ -77,6 +77,18 @@ export type ComplaintDetail = Complaint & {
   rating: Rating | null;
 };
 
+/** Public tracking view — no citizen, officer, or comment data */
+export type PublicComplaintView = {
+  complaintNumber: string;
+  title: string;
+  status: ComplaintStatus;
+  categoryName: string;
+  departmentName: string;
+  submittedAt: Date;
+  updatedAt: Date;
+  timeline: { toStatus: ComplaintStatus; createdAt: Date }[];
+};
+
 // ─────────────────────────────────────────────────────────────
 // API RESPONSE TYPES
 // ─────────────────────────────────────────────────────────────

@@ -7,13 +7,9 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  ShieldCheck,
-  ArrowRight,
-  FileText,
-  Clock,
-  Users,
-} from "lucide-react";
+import { ArrowRight, FileText, Clock, Users } from "lucide-react";
+import PublicHeader from "@/components/PublicHeader";
+import PublicFooter from "@/components/PublicFooter";
 
 export const metadata: Metadata = {
   title: "CivicResolve — Public Service Complaint Management",
@@ -22,30 +18,13 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <div className="landing-layout">
-      {/* Navbar */}
-      <header className="landing-nav">
-        <div className="landing-nav-inner">
-          <div className="landing-brand">
-            <ShieldCheck className="landing-brand-icon" aria-hidden="true" />
-            <span className="landing-brand-name">CivicResolve</span>
-          </div>
-          <div className="landing-nav-actions">
-            <Link href="/login" className="landing-nav-link-outline">
-              Sign in
-            </Link>
-            <Link href="/register" className="landing-nav-link-primary">
-              Get started
-            </Link>
-          </div>
-        </div>
-      </header>
+      <PublicHeader currentPath="/" />
 
-      {/* Hero */}
       <main>
         <section className="landing-hero">
           <div className="landing-hero-inner">
             <div className="landing-hero-badge">
-              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+              <FileText className="h-4 w-4" aria-hidden="true" />
               <span>Secure &amp; Trusted Platform</span>
             </div>
             <h1 className="landing-hero-title">
@@ -62,14 +41,13 @@ export default function HomePage() {
                 Create free account
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
               </Link>
-              <Link href="/login" className="landing-cta-secondary">
-                Sign in
+              <Link href="/track" className="landing-cta-secondary">
+                Track a complaint
               </Link>
             </div>
           </div>
         </section>
 
-        {/* Features */}
         <section className="landing-features" aria-labelledby="features-heading">
           <div className="landing-features-inner">
             <h2 id="features-heading" className="landing-features-title">
@@ -106,12 +84,7 @@ export default function HomePage() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="landing-footer">
-        <p className="landing-footer-text">
-          &copy; {new Date().getFullYear()} CivicResolve. A public service platform.
-        </p>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

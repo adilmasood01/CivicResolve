@@ -12,7 +12,13 @@ import {
   type AddCommentInput,
   type FilterComplaintInput,
 } from "@/schemas/complaint.schema";
-import type { SessionUser, PaginatedResult, ComplaintDetail, SafeUser } from "@/types";
+import type {
+  SessionUser,
+  PaginatedResult,
+  ComplaintDetail,
+  SafeUser,
+  PublicComplaintView,
+} from "@/types";
 import { ComplaintStatus, Priority, CommentType, Prisma } from "@prisma/client";
 
 // ─────────────────────────────────────────────────────────────
@@ -603,4 +609,41 @@ export async function addComment(
   });
 
   return comment;
+}
+
+// ─────────────────────────────────────────────────────────────
+// 6. PUBLIC TRACKING (no PII, no login required)
+// ─────────────────────────────────────────────────────────────
+export async function getPublicComplaintByNumber(
+  complaintNumber: string
+): Promise<PublicComplaintView | null> {
+  const complaint = await prisma.complaint.findUnique({
+    where: { complaintNumber },
+    select: {
+      complaintNumber: true,
+      title: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      category: { select: { name: true } },
+      department: { select: { name: true } },
+      statusHistory: {
+        orderBy: { createdAt: "asc" },
+        select: { toStatus: true, createdAt: true },
+      },
+    },
+  });
+
+  if (!complaint) return null;
+
+  return {
+    complaintNumber: complaint.complaintNumber,
+    title: complaint.title,
+    status: complaint.status,
+    categoryName: complaint.category.name,
+    departmentName: complaint.department.name,
+    submittedAt: complaint.createdAt,
+    updatedAt: complaint.updatedAt,
+    timeline: complaint.statusHistory,
+  };
 }
