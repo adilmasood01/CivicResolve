@@ -1,31 +1,37 @@
 # CivicResolve
 
-> A Government/Public-Service Complaint Management System — portfolio-grade full-stack application.
+A public-service complaint desk: citizens file issues, departments work them against SLA, and every status change is recorded.
 
-![CivicResolve](./public/og-image.png)
+This is a **portfolio project**, not a government product.
+
+![CivicResolve](./public/og-image.svg)
 
 ---
 
 ## Overview
 
-CivicResolve is a centralized platform where citizens can submit complaints about public services and government departments can receive, assign, investigate, resolve, and close those complaints.
+CivicResolve is a centralized platform where citizens submit complaints about public services, and departments receive, assign, investigate, resolve, and close those cases.
 
-Built to demonstrate production-quality full-stack engineering: database design, authentication, authorization, workflow management, SLA monitoring, auditability, analytics, and responsive UI.
+It is built to show production-style full-stack work: database design, authentication, authorization, workflow, SLA monitoring, auditability, analytics, and a responsive UI.
+
+**Public routes (no login):** `/` landing · `/about` · `/track` · `/login` · `/register`
+
+After sign-in, each role lands on its dashboard (`/dashboard`, `/staff/dashboard`, `/manager/dashboard`, `/admin/dashboard`).
 
 ---
 
 ## Features
 
-- **Citizen Portal** — Submit, track, and follow up on complaints
-- **Officer Dashboard** — Manage assigned complaints, add notes, upload evidence
-- **Department Manager Dashboard** — Monitor team workload, SLA compliance, analytics
-- **Admin Panel** — Full system control: users, departments, categories, SLA rules, audit logs
-- **Complaint Lifecycle** — Enforced state machine (SUBMITTED → RESOLVED → CLOSED)
-- **SLA Monitoring** — Per-priority deadlines with visual ON_TRACK / DUE_SOON / BREACHED indicators
-- **Audit Trail** — Every significant action recorded immutably
-- **Notifications** — In-app notification system per user role
-- **Role-based Access Control** — Enforced server-side via centralized `can()` permission function
-- **Public Complaint Tracking** — Track by complaint number without login
+- **Citizen portal** — Submit, track, and follow up on complaints
+- **Officer dashboard** — Assigned cases, notes, and evidence
+- **Department manager dashboard** — Workload, SLA, department analytics
+- **Admin panel** — Users, departments, categories, SLA rules, audit logs
+- **Complaint lifecycle** — Enforced state machine (SUBMITTED → RESOLVED → CLOSED)
+- **SLA monitoring** — Per-priority deadlines with ON_TRACK / DUE_SOON / BREACHED
+- **Audit trail** — Significant actions recorded immutably
+- **Notifications** — In-app updates per role
+- **Role-based access** — Enforced server-side via `can()`
+- **Public tracking** — Look up a case by complaint number without signing in
 
 ---
 
@@ -33,14 +39,14 @@ Built to demonstrate production-quality full-stack engineering: database design,
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 14 (App Router) |
-| Language | TypeScript (strict) |
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript |
 | Database | PostgreSQL (Supabase) |
 | ORM | Prisma |
 | Auth | Auth.js v5 (NextAuth) + Prisma adapter |
-| UI Components | shadcn/ui + Tailwind CSS v4 |
+| UI | shadcn/ui + Tailwind CSS v4 |
 | Forms | React Hook Form + Zod |
-| Data Fetching | TanStack Query |
+| Data fetching | TanStack Query |
 | Charts | Recharts |
 | Utilities | date-fns, bcryptjs, clsx, tailwind-merge |
 
@@ -50,29 +56,33 @@ Built to demonstrate production-quality full-stack engineering: database design,
 
 ```
 app/                  Next.js App Router pages and API route handlers
-├── (auth)/           Login / register flows
-├── (citizen)/        Citizen dashboard and complaint pages
-├── (staff)/          Officer views
-├── (manager)/        Department manager views
-├── (admin)/          Admin panels
-└── api/              REST-style route handlers (thin — delegate to services)
+├── (auth)/           Login / register
+├── dashboard/        Citizen home
+├── complaints/       Citizen list, submit, detail
+├── staff/            Officer dashboard and cases
+├── manager/          Manager dashboard, cases, analytics
+├── admin/            Admin center
+├── track/            Public complaint lookup
+├── about/            About
+└── api/              Route handlers (thin — delegate to services)
 
+components/           Shared UI (layout, complaints, analytics, public chrome)
 lib/
+├── auth.ts           Session helpers and role gates
 ├── prisma.ts         Prisma client singleton
-├── utils.ts          Shared utilities (cn, generateComplaintNumber, etc.)
-├── sla.ts            SLA calculation and status logic (pure functions)
-└── permissions.ts    Central can(user, action, resource) permission system
+├── utils.ts          Shared utilities (cn, complaint numbers, dates)
+├── sla.ts            SLA calculation (pure functions)
+└── permissions.ts    can(user, action, resource)
 
-services/             Business logic layer (called by route handlers)
-repositories/         Database access layer (called by services)
-schemas/              Zod validation schemas (shared between client and server)
-types/                Shared TypeScript types and interfaces
+services/             Business logic (called by route handlers and server actions)
+schemas/              Zod schemas (shared by client and server)
+types/                Shared TypeScript types
 prisma/
 ├── schema.prisma     Database schema
-└── seed.ts           Demo data seeder
+└── seed.ts           Local demo data
 ```
 
-### Authorization Model
+### Authorization model
 
 ```typescript
 // Always called server-side — never trust client-supplied role information
@@ -81,7 +91,7 @@ can(user, "complaint:assign", complaint)   // → true/false
 canTransition(user, "IN_PROGRESS", "RESOLVED", complaint)
 ```
 
-### Complaint Lifecycle
+### Complaint lifecycle
 
 ```
 SUBMITTED → UNDER_REVIEW → ASSIGNED → IN_PROGRESS → RESOLVED → CLOSED
@@ -130,30 +140,23 @@ Key models:
 
 ### Prerequisites
 
-- Node.js 18+
-- PostgreSQL database (Supabase recommended)
+- Node.js 20+
+- PostgreSQL (Supabase is a convenient host)
 
 ### Steps
 
 ```bash
-# 1. Clone the repository
-git clone <repo-url>
-cd civicresolve
+git clone https://github.com/adilmasood01/CivicResolve.git
+cd CivicResolve
 
-# 2. Install dependencies
 npm install
 
-# 3. Configure environment
 cp .env.example .env.local
-# Fill in DATABASE_URL, DIRECT_URL, AUTH_SECRET
+# Set DATABASE_URL, DIRECT_URL, and AUTH_SECRET
 
-# 4. Push database schema
 npx prisma db push
-
-# 5. Seed demo data
 npx prisma db seed
 
-# 6. Start development server
 npm run dev
 ```
 
@@ -174,32 +177,30 @@ See [`.env.example`](./.env.example) for the full list.
 
 ---
 
-## Demo Accounts [Local Development Only]
+## Demo accounts (local only)
 
-> ⚠️ **SECURITY NOTICE**: The demo accounts listed below are intended strictly for local development and testing environments.
-> Do NOT seed demo accounts or expose these passwords in production deployments.
+These are **fictional seed users** for local development. They are not affiliated with any government. Do not use these passwords on a deployed instance.
 
-| Role | Email | Default Password (Dev Only) |
+`prisma/seed.ts` refuses to run when `NODE_ENV=production` unless `ALLOW_PRODUCTION_SEED=true`.
+
+| Role | Email | Password |
 |---|---|---|
-| Admin | admin@civicresolve.gov | Admin@123456 |
-| Manager (Public Works) | manager.works@civicresolve.gov | Manager@123456 |
-| Manager (Water) | manager.water@civicresolve.gov | Manager@123456 |
-| Manager (Traffic) | manager.traffic@civicresolve.gov | Manager@123456 |
-| Officer | officer.kwame@civicresolve.gov | Officer@123456 |
-| Officer | officer.fatima@civicresolve.gov | Officer@123456 |
-| Officer | officer.samuel@civicresolve.gov | Officer@123456 |
-| Officer | officer.grace@civicresolve.gov | Officer@123456 |
-| Citizen | citizen.alice@example.com | Citizen@123456 |
-| Citizen | citizen.bob@example.com | Citizen@123456 |
+| Admin | `admin@civicresolve.gov` | `Admin@123456` |
+| Manager | `manager.works@civicresolve.gov` | `Manager@123456` |
+| Officer | `officer.kwame@civicresolve.gov` | `Officer@123456` |
+| Citizen | `citizen.alice@example.com` | `Citizen@123456` |
+
+Other seeded users live in `prisma/seed.ts`. Override seed passwords with `SEED_ADMIN_PASSWORD`, `SEED_MANAGER_PASSWORD`, `SEED_OFFICER_PASSWORD`, and `SEED_CITIZEN_PASSWORD` if you need to.
+
+Public tracker example: `CMP-2026-000001`.
 
 ---
 
-## Production Security & Deployment Guidelines
+## Deploying
 
-1. **Seed Execution Guard**: The database seed script (`prisma/seed.ts`) automatically blocks execution when `NODE_ENV=production`. Seeding demo accounts in production is prohibited by default.
-2. **Environment Variable Passwords**: If initial administrative users are seeded during initial setup, seed passwords must be set via secure environment variables (`SEED_ADMIN_PASSWORD`, `SEED_MANAGER_PASSWORD`, `SEED_OFFICER_PASSWORD`, `SEED_CITIZEN_PASSWORD`) rather than hardcoded fallbacks.
-3. **Independent Authorization Enforcement**: All API routes and Server Actions independently perform role and resource-level authorization (`lib/permissions.ts`), ensuring zero reliance on middleware route matching alone.
-4. **Secret Management**: Ensure `AUTH_SECRET`, `DATABASE_URL`, and database credentials are fully generated and managed via secure secret store in production environments.
+- Generate a unique `AUTH_SECRET` and never commit `.env.local`.
+- Do not seed a production database with the demo accounts above.
+- Route matching in middleware is not enough: API routes and server actions still authorize through `lib/permissions.ts`.
 
 ---
 
@@ -221,9 +222,9 @@ npx prisma studio
 
 ---
 
-## Future Extensions
+## Future extensions
 
-The architecture is designed to support these without major refactoring:
+The architecture can support these without a rewrite of the core workflow:
 
 - AI-powered complaint classification
 - Automatic department routing using ML
@@ -236,4 +237,4 @@ The architecture is designed to support these without major refactoring:
 
 ## License
 
-MIT — for portfolio and educational use.
+[MIT](./LICENSE) — for portfolio and educational use.
