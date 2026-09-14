@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
   <title id="title">CivicResolve</title>
-  <desc id="desc">Public-service complaint management  submit, track, and resolve</desc>
+  <desc id="desc">Public-service complaint management: submit, track, and resolve</desc>
   <rect width="1200" height="420" fill="#f4f7fb"/>
   <rect width="1200" height="6" fill="#1d4ed8"/>
   <circle cx="1080" cy="-40" r="220" fill="#dbe7fb"/>
   <circle cx="80" cy="460" r="180" fill="#e8eef8"/>
-  <text x="72" y="168" font-family="ui-sans-serif, Segoe UI, Helvetica, Arial, sans-serif" font-size="28" font-weight="700" letter-spacing="4" fill="#1d4ed8">CIVICRESOLVE</text>
-  <text x="72" y="240" font-family="ui-sans-serif, Segoe UI, Helvetica, Arial, sans-serif" font-size="48" font-weight="650" fill="#0f172a">Public-service complaint desk</text>
-  <text x="72" y="300" font-family="ui-sans-serif, Segoe UI, Helvetica, Arial, sans-serif" font-size="24" fill="#475569">Submit · Track · Resolve  with SLA, audit history, and role-based access</text>
+  <text x="72" y="168" font-family="ui-sans-serif, system-ui, Segoe UI, Helvetica, Arial, sans-serif" font-size="28" font-weight="700" letter-spacing="4" fill="#1d4ed8">CIVICRESOLVE</text>
+  <text x="72" y="240" font-family="ui-sans-serif, system-ui, Segoe UI, Helvetica, Arial, sans-serif" font-size="48" font-weight="650" fill="#0f172a">Public-service complaint desk</text>
+  <text x="72" y="300" font-family="ui-sans-serif, system-ui, Segoe UI, Helvetica, Arial, sans-serif" font-size="24" fill="#475569">Submit &#183; Track &#183; Resolve   with SLA, audit history, and role-based access</text>
 </svg>
