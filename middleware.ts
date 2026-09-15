@@ -12,9 +12,12 @@
  *   /login, /register                                   → redirect to dashboard if already authed
  */
 
-import { auth } from "@/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "@/auth.config";
 import { NextResponse } from "next/server";
 import type { Role } from "@prisma/client";
+
+const { auth } = NextAuth(authConfig);
 
 // Route → minimum required roles (empty array = any authenticated user)
 const PROTECTED_ROUTES: Array<{

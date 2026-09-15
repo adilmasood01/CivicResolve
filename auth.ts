@@ -10,20 +10,16 @@ import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import type { Role } from "@prisma/client";
+import { authConfig } from "@/auth.config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma),
 
   // JWT strategy — required for Credentials provider and Edge middleware
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
-
-  pages: {
-    signIn: "/login",
-    error: "/login",
   },
 
   providers: [
@@ -91,43 +87,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-
-  callbacks: {
-    /**
-     * Embed custom claims into the JWT token.
-     * Called after authorize() succeeds and on every token refresh.
-     */
-    async jwt({ token, user }) {
-      if (user) {
-        // First sign-in — populate token from the authorize() return value
-        // user may be AdapterUser | User depending on provider
-        const u = user as {
-          id?: string;
-          role?: Role;
-          departmentId?: string | null;
-        };
-        token.id = u.id ?? token.sub ?? "";
-        token.role = u.role ?? "CITIZEN";
-        token.departmentId = u.departmentId ?? null;
-      }
-      return token;
-    },
-
-    /**
-     * Surface custom claims onto the session object.
-     * This is what server components / API routes receive.
-     */
-    async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.id as string;
-        (session.user as { role?: Role }).role = token.role as Role;
-        (session.user as { departmentId?: string | null }).departmentId =
-          (token.departmentId ?? null) as string | null;
-      }
-      return session;
-    },
-  },
-
-  // Trustworthy host configuration
-  trustHost: true,
 });
+
