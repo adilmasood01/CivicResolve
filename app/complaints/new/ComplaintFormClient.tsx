@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createComplaintAction } from "@/app/actions/complaints";
-import { AlertCircle, Send, MapPin, CheckCircle2 } from "lucide-react";
+import { AlertCircle, Send, CheckCircle2, Paperclip, Loader2 } from "lucide-react";
 
 interface CategoryOption {
   id: string;
@@ -15,6 +15,9 @@ interface CategoryOption {
 interface ComplaintFormClientProps {
   categories: CategoryOption[];
 }
+
+const fieldClass =
+  "w-full rounded-md border border-border bg-background p-2.5 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20";
 
 export default function ComplaintFormClient({ categories }: ComplaintFormClientProps) {
   const router = useRouter();
@@ -61,150 +64,190 @@ export default function ComplaintFormClient({ categories }: ComplaintFormClientP
 
   if (successComplaintNumber) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center space-y-4 shadow-sm animate-in fade-in">
-        <div className="mx-auto h-16 w-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center">
-          <CheckCircle2 className="h-10 w-10" />
+      <div className="rounded-lg border border-border bg-card p-8 text-center">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+          <CheckCircle2 className="h-7 w-7" aria-hidden="true" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900">Complaint Submitted!</h2>
-        <p className="text-gray-600 max-w-md mx-auto">
-          Your complaint reference number is{" "}
-          <strong className="text-blue-600 font-mono text-lg">{successComplaintNumber}</strong>.
-          Redirecting to your complaint tracking page...
+        <h2 className="text-xl font-semibold text-foreground">Complaint submitted</h2>
+        <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+          Reference{" "}
+          <span className="font-mono font-medium text-primary">{successComplaintNumber}</span>.
+          Redirecting to your complaint…
         </p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 p-6 md:p-8 space-y-6 shadow-xs">
+    <form onSubmit={handleSubmit} className="space-y-8">
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
           <div>
-            <p className="font-semibold">Unable to submit complaint</p>
-            <p className="text-xs mt-0.5">{error}</p>
+            <p className="font-medium">Unable to submit complaint</p>
+            <p className="mt-0.5 text-xs opacity-90">{error}</p>
           </div>
         </div>
       )}
 
-      {/* Category Select */}
-      <div className="space-y-1.5">
-        <label className="block text-sm font-semibold text-gray-900">
-          Category <span className="text-red-500">*</span>
-        </label>
-        <select
-          value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)}
-          required
-          className="w-full text-sm bg-gray-50 rounded-xl border border-gray-300 p-3 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition"
-        >
-          <option value="">-- Select a Category --</option>
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name} ({cat.department?.name || "General"})
-            </option>
-          ))}
-        </select>
-        {selectedCategory?.description && (
-          <p className="text-xs text-gray-500 italic mt-1">
-            {selectedCategory.description}
+      <section className="space-y-4 border-b border-border pb-8">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Details</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Describe the issue and choose the right category.
           </p>
-        )}
-      </div>
+        </div>
 
-      {/* Title */}
-      <div className="space-y-1.5">
-        <label className="block text-sm font-semibold text-gray-900">
-          Title / Short Summary <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="e.g. Broken street light outside 42 Market Street"
-          required
-          minLength={5}
-          maxLength={150}
-          className="w-full text-sm bg-gray-50 rounded-xl border border-gray-300 p-3 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition"
-        />
-        <p className="text-xs text-gray-400 text-right">{title.length}/150</p>
-      </div>
+        <div className="space-y-1.5">
+          <label htmlFor="category" className="block text-sm font-medium text-foreground">
+            Category <span className="text-destructive">*</span>
+          </label>
+          <select
+            id="category"
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            required
+            className={fieldClass}
+          >
+            <option value="">Select a category</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name} ({cat.department?.name || "General"})
+              </option>
+            ))}
+          </select>
+          {selectedCategory?.description && (
+            <p className="text-xs text-muted-foreground">{selectedCategory.description}</p>
+          )}
+        </div>
 
-      {/* Description */}
-      <div className="space-y-1.5">
-        <label className="block text-sm font-semibold text-gray-900">
-          Detailed Description <span className="text-red-500">*</span>
-        </label>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={5}
-          placeholder="Please describe the issue in detail (when did it start, how severe is it, any safety hazards)..."
-          required
-          minLength={10}
-          maxLength={3000}
-          className="w-full text-sm bg-gray-50 rounded-xl border border-gray-300 p-3 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition"
-        />
-        <p className="text-xs text-gray-400 text-right">{description.length}/3000</p>
-      </div>
-
-      {/* Location */}
-      <div className="space-y-1.5">
-        <label className="block text-sm font-semibold text-gray-900 flex items-center gap-1.5">
-          <MapPin className="h-4 w-4 text-blue-600" />
-          Location Description <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          placeholder="e.g. Junction of Main Street and Oak Avenue, near Central Hospital"
-          required
-          minLength={3}
-          maxLength={200}
-          className="w-full text-sm bg-gray-50 rounded-xl border border-gray-300 p-3 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition"
-        />
-      </div>
-
-      {/* Optional Coordinates */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t">
-        <div className="space-y-1">
-          <label className="block text-xs font-medium text-gray-700">
-            Latitude (Optional)
+        <div className="space-y-1.5">
+          <label htmlFor="title" className="block text-sm font-medium text-foreground">
+            Title <span className="text-destructive">*</span>
           </label>
           <input
-            type="number"
-            step="any"
-            value={latitude}
-            onChange={(e) => setLatitude(e.target.value)}
-            placeholder="e.g. 5.6037"
-            className="w-full text-xs bg-gray-50 rounded-lg border border-gray-300 p-2.5 outline-none focus:border-blue-500"
+            id="title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. Broken street light outside 42 Market Street"
+            required
+            minLength={5}
+            maxLength={150}
+            className={fieldClass}
           />
+          <p className="text-right text-xs text-muted-foreground">{title.length}/150</p>
         </div>
-        <div className="space-y-1">
-          <label className="block text-xs font-medium text-gray-700">
-            Longitude (Optional)
+
+        <div className="space-y-1.5">
+          <label htmlFor="description" className="block text-sm font-medium text-foreground">
+            Description <span className="text-destructive">*</span>
+          </label>
+          <textarea
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={5}
+            placeholder="When did it start, how severe is it, any safety hazards…"
+            required
+            minLength={10}
+            maxLength={3000}
+            className={fieldClass}
+          />
+          <p className="text-right text-xs text-muted-foreground">{description.length}/3000</p>
+        </div>
+      </section>
+
+      <section className="space-y-4 border-b border-border pb-8">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Location</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Help responders find the issue.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="location" className="block text-sm font-medium text-foreground">
+            Location description <span className="text-destructive">*</span>
           </label>
           <input
-            type="number"
-            step="any"
-            value={longitude}
-            onChange={(e) => setLongitude(e.target.value)}
-            placeholder="e.g. -0.1870"
-            className="w-full text-xs bg-gray-50 rounded-lg border border-gray-300 p-2.5 outline-none focus:border-blue-500"
+            id="location"
+            type="text"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="e.g. Junction of Main Street and Oak Avenue"
+            required
+            minLength={3}
+            maxLength={200}
+            className={fieldClass}
           />
         </div>
-      </div>
 
-      {/* Submit button */}
-      <div className="flex justify-end pt-4 border-t">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label htmlFor="latitude" className="block text-xs font-medium text-muted-foreground">
+              Latitude (optional)
+            </label>
+            <input
+              id="latitude"
+              type="number"
+              step="any"
+              value={latitude}
+              onChange={(e) => setLatitude(e.target.value)}
+              placeholder="e.g. 5.6037"
+              className={fieldClass}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="longitude" className="block text-xs font-medium text-muted-foreground">
+              Longitude (optional)
+            </label>
+            <input
+              id="longitude"
+              type="number"
+              step="any"
+              value={longitude}
+              onChange={(e) => setLongitude(e.target.value)}
+              placeholder="e.g. -0.1870"
+              className={fieldClass}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-3 border-b border-border pb-8">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Attachments</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Photos or documents can be added after submission on the complaint page.
+          </p>
+        </div>
+        <div className="flex items-start gap-2 rounded-md border border-dashed border-border px-3 py-4 text-xs text-muted-foreground">
+          <Paperclip className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <p>
+            After you submit, open the complaint to upload JPEG, PNG, WEBP, or PDF
+            evidence (max 10 MB each).
+          </p>
+        </div>
+      </section>
+
+      <div className="flex justify-end">
         <button
           type="submit"
           disabled={isPending || !title || !categoryId || !description || !location}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition shadow-md disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          <Send className="h-4 w-4" />
-          <span>{isPending ? "Submitting Complaint..." : "Submit Complaint"}</span>
+          {isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              Submitting…
+            </>
+          ) : (
+            <>
+              <Send className="h-4 w-4" aria-hidden="true" />
+              Submit complaint
+            </>
+          )}
         </button>
       </div>
     </form>

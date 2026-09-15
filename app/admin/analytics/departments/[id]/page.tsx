@@ -2,15 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
-import { can } from "@/lib/permissions";
-import AuthNav from "@/components/AuthNav";
+import { AdminAnalyticsNav } from "@/components/admin/AdminAnalyticsNav";
+import { PageHeader } from "@/components/layout";
 import { getDepartmentAnalytics } from "@/services/analytics.service";
 import {
   ComplaintTrendChart,
-  DistributionBarChart,
   CategoryPieChart,
 } from "@/components/analytics/AnalyticsCharts";
-import { Building2, ArrowLeft, Layers, CheckCircle2, ShieldCheck, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Layers, CheckCircle2, ShieldCheck, AlertTriangle } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Department Detail Analytics | CivicResolve",
@@ -33,118 +32,102 @@ export default async function DepartmentDetailPage({
     const data = await getDepartmentAnalytics(user, id, { range });
 
     return (
-      <div className="dashboard-layout bg-gray-50 min-h-screen">
-        <AuthNav user={user} />
+      <div className="space-y-6">
+        <PageHeader
+          breadcrumb={
+            <Link
+              href="/admin/analytics/departments"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to departments
+            </Link>
+          }
+          title={`${data.department.name} — Department Analytics`}
+          description={`Department Code: ${data.department.code} | Scoped metrics & officer workload`}
+        />
 
-        <main className="dashboard-main py-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
-            {/* Header */}
-            <div className="flex items-center justify-between flex-wrap gap-4 border-b pb-6 bg-white p-6 rounded-2xl border-gray-200 shadow-xs">
-              <div className="flex items-center gap-3">
-                <Link
-                  href="/admin/analytics/departments"
-                  className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-100 text-gray-600 transition"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Link>
-                <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl border border-purple-200">
-                  <Building2 className="h-7 w-7" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-black text-gray-900 tracking-tight">
-                    {data.department.name} — Department Analytics
-                  </h1>
-                  <p className="text-sm text-gray-500 font-medium">
-                    Department Code: {data.department.code} | Scoped metrics & officer workload
-                  </p>
-                </div>
-              </div>
+        <AdminAnalyticsNav />
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+          <div className="space-y-2 rounded-lg border border-border bg-card p-5">
+            <div className="flex items-center justify-between text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <span>Total Complaints</span>
+              <Layers className="h-4 w-4 text-blue-600" />
             </div>
-
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-xs space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-gray-500 uppercase tracking-wider">
-                  <span>Total Complaints</span>
-                  <Layers className="h-4 w-4 text-blue-600" />
-                </div>
-                <p className="text-3xl font-black text-gray-900">{data.kpis.totalComplaints}</p>
-              </div>
-
-              <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-xs space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-gray-500 uppercase tracking-wider">
-                  <span>Resolution Rate</span>
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                </div>
-                <p className="text-3xl font-black text-emerald-600">{data.kpis.resolutionRatePercent}%</p>
-              </div>
-
-              <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-xs space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-gray-500 uppercase tracking-wider">
-                  <span>SLA Compliance</span>
-                  <ShieldCheck className="h-4 w-4 text-indigo-600" />
-                </div>
-                <p className="text-3xl font-black text-indigo-600">{data.kpis.slaCompliancePercent}%</p>
-              </div>
-
-              <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-xs space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-gray-500 uppercase tracking-wider">
-                  <span>Active Breaches</span>
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                </div>
-                <p className="text-3xl font-black text-amber-600">{data.kpis.slaBreaches}</p>
-              </div>
-            </div>
-
-            {/* Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-                <h2 className="text-base font-bold text-gray-900">Department Complaint Trend</h2>
-                <ComplaintTrendChart data={data.trend} />
-              </div>
-
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-                <h2 className="text-base font-bold text-gray-900">Category Volume</h2>
-                <CategoryPieChart data={data.categoryDist} />
-              </div>
-            </div>
-
-            {/* Staff Workload Table */}
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xs">
-              <div className="p-4 border-b bg-gray-50/50">
-                <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Department Staff Workload & Performance ({data.officerWorkload.length} Officers)
-                </h2>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-gray-100/70 border-b border-gray-200 text-[11px] font-bold text-gray-600 uppercase tracking-wider">
-                      <th className="py-3 px-4">Officer</th>
-                      <th className="py-3 px-4">Assigned</th>
-                      <th className="py-3 px-4">Open</th>
-                      <th className="py-3 px-4">Resolved</th>
-                      <th className="py-3 px-4">Breached</th>
-                      <th className="py-3 px-4">Avg Res Time</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 text-sm">
-                    {data.officerWorkload.map((o) => (
-                      <tr key={o.officerId} className="hover:bg-gray-50">
-                        <td className="py-3 px-4 font-bold text-gray-900">{o.officerName}</td>
-                        <td className="py-3 px-4 font-extrabold text-gray-900">{o.totalAssigned}</td>
-                        <td className="py-3 px-4 text-amber-600 font-medium">{o.openComplaints}</td>
-                        <td className="py-3 px-4 text-emerald-600 font-medium">{o.resolvedComplaints}</td>
-                        <td className="py-3 px-4 text-red-600 font-bold">{o.breachedComplaints}</td>
-                        <td className="py-3 px-4 text-gray-700 font-medium">{o.avgResolutionHours} hrs</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <p className="text-2xl font-semibold text-foreground">{data.kpis.totalComplaints}</p>
           </div>
-        </main>
+
+          <div className="space-y-2 rounded-lg border border-border bg-card p-5">
+            <div className="flex items-center justify-between text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <span>Resolution Rate</span>
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            </div>
+            <p className="text-2xl font-semibold text-emerald-600">{data.kpis.resolutionRatePercent}%</p>
+          </div>
+
+          <div className="space-y-2 rounded-lg border border-border bg-card p-5">
+            <div className="flex items-center justify-between text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <span>SLA Compliance</span>
+              <ShieldCheck className="h-4 w-4 text-indigo-600" />
+            </div>
+            <p className="text-2xl font-semibold text-indigo-600">{data.kpis.slaCompliancePercent}%</p>
+          </div>
+
+          <div className="space-y-2 rounded-lg border border-border bg-card p-5">
+            <div className="flex items-center justify-between text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <span>Active Breaches</span>
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+            </div>
+            <p className="text-2xl font-semibold text-amber-600">{data.kpis.slaBreaches}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="space-y-4 rounded-lg border border-border bg-card p-6 lg:col-span-2">
+            <h2 className="text-base font-semibold text-foreground">Department Complaint Trend</h2>
+            <ComplaintTrendChart data={data.trend} />
+          </div>
+
+          <div className="space-y-4 rounded-lg border border-border bg-card p-6">
+            <h2 className="text-base font-semibold text-foreground">Category Volume</h2>
+            <CategoryPieChart data={data.categoryDist} />
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <div className="border-b border-border bg-muted/40 px-4 py-3">
+            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Department Staff Workload & Performance ({data.officerWorkload.length} Officers)
+            </h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left">
+              <thead>
+                <tr className="border-b border-border bg-muted/40 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  <th className="px-4 py-3">Officer</th>
+                  <th className="px-4 py-3">Assigned</th>
+                  <th className="px-4 py-3">Open</th>
+                  <th className="px-4 py-3">Resolved</th>
+                  <th className="px-4 py-3">Breached</th>
+                  <th className="px-4 py-3">Avg Res Time</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border text-sm">
+                {data.officerWorkload.map((o) => (
+                  <tr key={o.officerId} className="hover:bg-muted/30">
+                    <td className="px-4 py-3 font-semibold text-foreground">{o.officerName}</td>
+                    <td className="px-4 py-3 font-semibold text-foreground">{o.totalAssigned}</td>
+                    <td className="px-4 py-3 font-medium text-amber-600">{o.openComplaints}</td>
+                    <td className="px-4 py-3 font-medium text-emerald-600">{o.resolvedComplaints}</td>
+                    <td className="px-4 py-3 font-semibold text-red-600">{o.breachedComplaints}</td>
+                    <td className="px-4 py-3 font-medium text-foreground">{o.avgResolutionHours} hrs</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     );
   } catch {

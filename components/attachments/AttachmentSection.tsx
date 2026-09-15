@@ -2,7 +2,6 @@
 
 import { useState, useRef } from "react";
 import {
-  Paperclip,
   FileText,
   Image as ImageIcon,
   UploadCloud,
@@ -61,8 +60,7 @@ export function AttachmentSection({
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    // Client-side quick checks
-    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+    const MAX_SIZE = 10 * 1024 * 1024;
     const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 
     if (file.size > MAX_SIZE) {
@@ -141,37 +139,33 @@ export function AttachmentSection({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-6 shadow-xs">
-      <div className="flex items-center justify-between border-b pb-3">
-        <div className="flex items-center gap-2">
-          <Paperclip className="h-5 w-5 text-blue-600" />
-          <h3 className="font-bold text-gray-900 text-base">
-            Evidence & Attachments ({attachments.length})
-          </h3>
-        </div>
-      </div>
+    <section className="mb-8 border-t border-border pt-6">
+      <h2 className="mb-4 text-sm font-semibold text-foreground">
+        Attachments
+        <span className="ml-2 text-xs font-normal text-muted-foreground">
+          ({attachments.length})
+        </span>
+      </h2>
 
-      {/* Messages */}
       {errorMsg && (
-        <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 shrink-0" />
+        <div className="mb-3 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span>{errorMsg}</span>
         </div>
       )}
 
       {successMsg && (
-        <div className="p-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4 shrink-0" />
+        <div className="mb-3 flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50/60 p-3 text-xs text-emerald-800">
+          <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span>{successMsg}</span>
         </div>
       )}
 
-      {/* Upload Box */}
       <div
-        className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${
+        className={`mb-4 cursor-pointer rounded-lg border border-dashed p-5 text-center transition-colors ${
           dragActive
-            ? "border-blue-500 bg-blue-50/50"
-            : "border-gray-300 hover:border-blue-400 bg-gray-50/50"
+            ? "border-primary bg-primary/5"
+            : "border-border hover:border-primary/50"
         }`}
         onDragOver={(e) => {
           e.preventDefault();
@@ -195,58 +189,56 @@ export function AttachmentSection({
 
         <div className="flex flex-col items-center gap-2">
           {isUploading ? (
-            <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+            <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" aria-hidden="true" />
           ) : (
-            <UploadCloud className="h-8 w-8 text-blue-500" />
+            <UploadCloud className="h-7 w-7 text-muted-foreground" aria-hidden="true" />
           )}
-          <p className="text-sm font-semibold text-gray-800">
-            {isUploading ? "Uploading file…" : "Click or drag file to upload evidence"}
+          <p className="text-sm font-medium text-foreground">
+            {isUploading ? "Uploading…" : "Click or drag a file to upload"}
           </p>
-          <p className="text-xs text-gray-500">
-            Supports JPEG, PNG, WEBP, PDF (Max 10 MB)
+          <p className="text-xs text-muted-foreground">
+            JPEG, PNG, WEBP, or PDF · Max 10 MB
           </p>
         </div>
       </div>
 
-      {/* Visibility Selector for Staff */}
       {isStaff && (
-        <div className="flex items-center gap-4 bg-gray-50 p-3 rounded-xl border text-xs">
-          <span className="font-semibold text-gray-700">Upload Visibility:</span>
-          <label className="flex items-center gap-1.5 cursor-pointer">
+        <div className="mb-4 flex flex-wrap items-center gap-4 text-xs">
+          <span className="font-medium text-muted-foreground">Visibility:</span>
+          <label className="flex cursor-pointer items-center gap-1.5">
             <input
               type="radio"
               name="visibility"
               value="PUBLIC"
               checked={visibility === "PUBLIC"}
               onChange={() => setVisibility("PUBLIC")}
-              className="text-blue-600"
+              className="accent-primary"
             />
-            <span>Public (Visible to Citizen)</span>
+            <span>Public</span>
           </label>
-          <label className="flex items-center gap-1.5 cursor-pointer">
+          <label className="flex cursor-pointer items-center gap-1.5">
             <input
               type="radio"
               name="visibility"
               value="INTERNAL"
               checked={visibility === "INTERNAL"}
               onChange={() => setVisibility("INTERNAL")}
-              className="text-blue-600"
+              className="accent-primary"
             />
-            <span className="flex items-center gap-1 text-purple-700 font-medium">
-              <Shield className="h-3.5 w-3.5" />
-              Internal Staff Only
+            <span className="inline-flex items-center gap-1 font-medium text-foreground">
+              <Shield className="h-3.5 w-3.5" aria-hidden="true" />
+              Internal only
             </span>
           </label>
         </div>
       )}
 
-      {/* Attachment List */}
       {attachments.length === 0 ? (
-        <p className="text-xs text-gray-400 text-center py-4">
+        <p className="py-4 text-center text-xs text-muted-foreground">
           No attachments uploaded yet.
         </p>
       ) : (
-        <div className="space-y-3">
+        <ul className="divide-y divide-border rounded-lg border border-border">
           {attachments.map((att) => {
             const isPdf = att.fileType.includes("pdf");
             const canDelete =
@@ -255,60 +247,57 @@ export function AttachmentSection({
               (currentUser.role === "DEPARTMENT_MANAGER" && isStaff);
 
             return (
-              <div
+              <li
                 key={att.id}
-                className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-xl hover:border-gray-300 transition text-xs gap-3 flex-wrap"
+                className="flex flex-wrap items-center justify-between gap-3 px-3 py-3 text-xs"
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="p-2 rounded-lg bg-blue-50 text-blue-600 shrink-0">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="shrink-0 text-muted-foreground">
                     {isPdf ? (
-                      <FileText className="h-5 w-5 text-red-500" />
+                      <FileText className="h-5 w-5" aria-hidden="true" />
                     ) : (
-                      <ImageIcon className="h-5 w-5 text-blue-600" />
+                      <ImageIcon className="h-5 w-5" aria-hidden="true" />
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold text-gray-900 truncate">
-                      {att.fileName}
-                    </p>
-                    <p className="text-gray-500 text-[11px] flex items-center gap-2">
-                      <span>{formatBytes(att.fileSize)}</span>
-                      <span>•</span>
-                      <span>Uploaded by {att.uploadedBy.name || att.uploadedBy.email}</span>
-                      <span>•</span>
-                      <span>{formatDateTime(att.createdAt)}</span>
+                    <p className="truncate font-medium text-foreground">{att.fileName}</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      {formatBytes(att.fileSize)}
+                      <span className="mx-1">·</span>
+                      {att.uploadedBy.name || att.uploadedBy.email}
+                      <span className="mx-1">·</span>
+                      {formatDateTime(att.createdAt)}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex shrink-0 items-center gap-2">
                   {att.visibility === "INTERNAL" && (
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1">
-                      <Shield className="h-3 w-3" />
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                      <Shield className="h-3 w-3" aria-hidden="true" />
                       Internal
                     </span>
                   )}
 
-                  {/* View / Download */}
                   <a
                     href={`/api/attachments/${att.id}/download`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition"
+                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
                     title="View file"
                   >
-                    <Eye className="h-3.5 w-3.5" />
-                    <span>View</span>
+                    <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+                    View
                   </a>
 
                   <a
                     href={`/api/attachments/${att.id}/download`}
                     download={att.fileName}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 font-medium transition"
+                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium text-primary hover:bg-muted"
                     title="Download file"
                   >
-                    <Download className="h-3.5 w-3.5" />
-                    <span>Download</span>
+                    <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                    Download
                   </a>
 
                   {canDelete && (
@@ -316,22 +305,22 @@ export function AttachmentSection({
                       type="button"
                       onClick={() => handleDelete(att.id)}
                       disabled={deletingId === att.id}
-                      className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition"
+                      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                       title="Delete attachment"
                     >
                       {deletingId === att.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-red-600" />
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                       ) : (
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
                       )}
                     </button>
                   )}
                 </div>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
-    </div>
+    </section>
   );
 }

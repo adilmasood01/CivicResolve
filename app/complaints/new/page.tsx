@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
 import AuthNav from "@/components/AuthNav";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { prisma } from "@/lib/prisma";
 import ComplaintFormClient from "./ComplaintFormClient";
-import { FilePlus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Submit New Complaint | CivicResolve",
@@ -13,7 +16,6 @@ export const metadata: Metadata = {
 export default async function NewComplaintPage() {
   const user = await requireAuth();
 
-  // Fetch active categories from DB for category select dropdown
   const categories = await prisma.category.findMany({
     where: { isActive: true },
     select: {
@@ -30,23 +32,22 @@ export default async function NewComplaintPage() {
       <AuthNav user={user} />
 
       <main className="dashboard-main">
-        <div className="max-w-3xl mx-auto space-y-6">
-          <div className="flex items-center gap-3 border-b pb-4">
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl border border-blue-200">
-              <FilePlus className="h-6 w-6" aria-hidden="true" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
-                Submit a New Complaint
-              </h1>
-              <p className="text-sm text-gray-500">
-                Report a public service, infrastructure, or community issue.
-              </p>
-            </div>
-          </div>
+        <PageContainer narrow>
+          <Link
+            href="/complaints"
+            className="mb-4 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+            Back to complaints
+          </Link>
+
+          <PageHeader
+            title="New complaint"
+            description="Report a public service, infrastructure, or community issue."
+          />
 
           <ComplaintFormClient categories={categories} />
-        </div>
+        </PageContainer>
       </main>
     </div>
   );

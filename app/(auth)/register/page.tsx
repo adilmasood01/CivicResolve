@@ -13,7 +13,8 @@ import { z } from "zod";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, ShieldCheck, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import Image from "next/image";
+import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -105,8 +106,15 @@ export default function RegisterPage() {
     <div className="auth-card">
       {/* Header */}
       <div className="auth-header">
-        <div className="auth-logo">
-          <ShieldCheck className="auth-logo-icon" aria-hidden="true" />
+        <div className="auth-logo overflow-hidden p-0">
+          <Image
+            src="/CivicResolve.jpg"
+            alt="CivicResolve Logo"
+            width={44}
+            height={44}
+            className="h-full w-full object-cover rounded-md"
+            priority
+          />
         </div>
         <h1 className="auth-title">CivicResolve</h1>
         <p className="auth-subtitle">Create your account</p>

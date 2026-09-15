@@ -16,7 +16,6 @@ export default function AuthLayout({
 }) {
   return (
     <div className="auth-layout">
-      <div className="auth-bg-pattern" />
       <div className="auth-container">{children}</div>
     </div>
   );

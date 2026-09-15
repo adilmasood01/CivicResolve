@@ -2,6 +2,7 @@ import { formatDateTime } from "@/lib/utils";
 import type { ComplaintStatusHistory } from "@prisma/client";
 import type { SafeUser } from "@/types";
 import { ComplaintStatusBadge } from "./ComplaintStatusBadge";
+import { cn } from "@/lib/utils";
 
 export interface TimelineEntry extends ComplaintStatusHistory {
   changedBy: SafeUser;
@@ -15,54 +16,46 @@ interface ComplaintTimelineProps {
 export function ComplaintTimeline({ history, className = "" }: ComplaintTimelineProps) {
   if (!history || history.length === 0) {
     return (
-      <div className="text-sm text-gray-500 py-4 text-center">
+      <p className="py-4 text-center text-sm text-muted-foreground">
         No status history recorded yet.
-      </div>
+      </p>
     );
   }
 
   return (
-    <div className={`flow-root ${className}`}>
-      <ul role="list" className="-mb-8">
+    <div className={cn("flow-root", className)}>
+      <ul role="list" className="space-y-0">
         {history.map((item, idx) => {
           const isLast = idx === history.length - 1;
 
           return (
-            <li key={item.id}>
-              <div className="relative pb-8">
-                {!isLast && (
-                  <span
-                    className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200"
-                    aria-hidden="true"
-                  />
-                )}
-                <div className="relative flex space-x-3 items-start">
-                  <div>
-                    <span className="h-8 w-8 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center ring-8 ring-white">
-                      <span className="h-2.5 w-2.5 rounded-full bg-blue-600" />
-                    </span>
+            <li key={item.id} className="relative flex gap-3 pb-6 last:pb-0">
+              {!isLast && (
+                <span
+                  className="absolute left-[7px] top-4 h-[calc(100%-0.5rem)] w-px bg-border"
+                  aria-hidden="true"
+                />
+              )}
+              <div className="relative z-10 mt-1.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border-2 border-primary bg-card" />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <ComplaintStatusBadge status={item.toStatus} />
+                    <p className="text-xs text-muted-foreground">
+                      by {item.changedBy?.name || item.changedBy?.email || "System"}
+                      {item.changedBy?.role ? ` · ${item.changedBy.role.replace(/_/g, " ")}` : ""}
+                    </p>
                   </div>
-                  <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <ComplaintStatusBadge status={item.toStatus} />
-                        <span className="text-xs text-gray-500 font-medium">
-                          by {item.changedBy?.name || item.changedBy?.email || "System"} ({item.changedBy?.role})
-                        </span>
-                      </div>
-                      {item.reason && (
-                        <p className="mt-1 text-sm text-gray-700 bg-gray-50 rounded p-2 border border-gray-100">
-                          {item.reason}
-                        </p>
-                      )}
-                    </div>
-                    <div className="whitespace-nowrap text-right text-xs text-gray-500">
-                      <time dateTime={new Date(item.createdAt).toISOString()}>
-                        {formatDateTime(item.createdAt)}
-                      </time>
-                    </div>
-                  </div>
+                  <time
+                    className="whitespace-nowrap text-[11px] text-muted-foreground"
+                    dateTime={new Date(item.createdAt).toISOString()}
+                  >
+                    {formatDateTime(item.createdAt)}
+                  </time>
                 </div>
+                {item.reason ? (
+                  <p className="mt-2 text-sm text-foreground">{item.reason}</p>
+                ) : null}
               </div>
             </li>
           );

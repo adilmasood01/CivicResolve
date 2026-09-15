@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth";
 import AuthNav from "@/components/AuthNav";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/layout/EmptyState";
 import { getComplaints } from "@/services/complaint.service";
 import { ComplaintFilterBar } from "@/components/complaints/ComplaintFilterBar";
 import { ComplaintTable } from "@/components/complaints/ComplaintTable";
+import { ComplaintCard } from "@/components/complaints/ComplaintCard";
 import { Pagination } from "@/components/complaints/Pagination";
 import { ClipboardList } from "lucide-react";
 
@@ -38,32 +42,45 @@ export default async function OfficerComplaintsPage({
       <AuthNav user={user} />
 
       <main className="dashboard-main">
-        <div className="max-w-7xl mx-auto space-y-6">
-          <div className="flex items-center justify-between flex-wrap gap-4 border-b pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-50 text-blue-600 rounded-xl border border-blue-200">
-                <ClipboardList className="h-6 w-6" aria-hidden="true" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
-                  Officer Complaint Inbox
-                </h1>
-                <p className="text-sm text-gray-500">
-                  Complaints assigned to you or in your department requiring attention.
-                </p>
-              </div>
-            </div>
-          </div>
+        <PageContainer>
+          <PageHeader
+            title="Complaint inbox"
+            description="Complaints assigned to you or in your department that need attention."
+          />
 
           <ComplaintFilterBar />
 
-          <ComplaintTable
-            complaints={complaints}
-            getDetailHref={(id) => `/staff/complaints/${id}`}
-          />
+          {complaints.length === 0 ? (
+            <div className="rounded-lg border border-border bg-card">
+              <EmptyState
+                title="No complaints found"
+                description="There are no complaints matching your current filters."
+                icon={<ClipboardList className="h-8 w-8" aria-hidden="true" />}
+                compact
+              />
+            </div>
+          ) : (
+            <>
+              <div className="hidden md:block">
+                <ComplaintTable
+                  complaints={complaints}
+                  getDetailHref={(id) => `/staff/complaints/${id}`}
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:hidden">
+                {complaints.map((c) => (
+                  <ComplaintCard
+                    key={c.id}
+                    complaint={c}
+                    detailHref={`/staff/complaints/${c.id}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
 
           <Pagination meta={meta} />
-        </div>
+        </PageContainer>
       </main>
     </div>
   );

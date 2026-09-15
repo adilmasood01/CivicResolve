@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
-import { can } from "@/lib/permissions";
-import AuthNav from "@/components/AuthNav";
+import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { StatStrip } from "@/components/layout/StatStrip";
+import { EmptyState } from "@/components/layout/EmptyState";
 import { getDepartmentAnalytics } from "@/services/analytics.service";
 import {
   ComplaintTrendChart,
-  DistributionBarChart,
   CategoryPieChart,
 } from "@/components/analytics/AnalyticsCharts";
-import { Building2, Layers, CheckCircle2, ShieldCheck, AlertTriangle, Users, FileText, Download } from "lucide-react";
+import { Download, FileText } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Department Analytics | CivicResolve Manager",
@@ -25,145 +26,162 @@ export default async function ManagerAnalyticsPage({
 
   if (user.role !== "DEPARTMENT_MANAGER" || !user.departmentId) {
     return (
-      <div className="p-8 text-center text-red-600 font-bold">
-        Forbidden: Department Manager access required.
-      </div>
+      <AppShell user={user}>
+        <EmptyState
+          title="You don't have permission to view this page"
+          description="Department manager access is required for analytics."
+          action={
+            <Link href="/" className="text-sm font-medium text-primary hover:underline">
+              Go home
+            </Link>
+          }
+        />
+      </AppShell>
     );
   }
 
   const params = await searchParams;
   const range = (typeof params.range === "string" ? params.range : "30d") as any;
-
   const data = await getDepartmentAnalytics(user, user.departmentId, { range });
 
+  const ranges = [
+    { key: "7d", label: "7 days" },
+    { key: "30d", label: "30 days" },
+    { key: "90d", label: "90 days" },
+  ];
+
   return (
-    <div className="dashboard-layout bg-gray-50 min-h-screen">
-      <AuthNav user={user} />
-
-      <main className="dashboard-main py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
-          {/* Header */}
-          <div className="flex items-center justify-between flex-wrap gap-4 border-b pb-6 bg-white p-6 rounded-2xl border-gray-200 shadow-xs">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl border border-blue-200">
-                <Building2 className="h-7 w-7" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-black text-gray-900 tracking-tight">
-                  {data.department.name} — Department Analytics
-                </h1>
-                <p className="text-sm text-gray-500 font-medium">
-                  Real-time workload, SLA compliance, and resolution rates for your department.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <a
-                href="/api/reports/complaints/csv"
-                target="_blank"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition shadow-xs"
+    <AppShell user={user}>
+      <PageHeader
+        title={`${data.department.name} analytics`}
+        description="Workload, SLA compliance, and resolution performance for your department."
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {ranges.map((r) => (
+              <Link
+                key={r.key}
+                href={`/manager/analytics?range=${r.key}`}
+                className={`inline-flex h-8 items-center rounded-md border px-2.5 text-xs font-medium ${
+                  range === r.key
+                    ? "border-primary bg-[var(--cr-primary-muted)] text-primary"
+                    : "border-border bg-card text-muted-foreground hover:bg-muted"
+                }`}
               >
-                <Download className="h-4 w-4" />
-                <span>Export CSV</span>
-              </a>
-
-              <a
-                href="/api/reports/departments/pdf"
-                target="_blank"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs transition shadow-xs"
-              >
-                <FileText className="h-4 w-4" />
-                <span>PDF Report</span>
-              </a>
-            </div>
+                {r.label}
+              </Link>
+            ))}
+            <a
+              href="/api/reports/complaints/csv"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-xs font-medium text-foreground hover:bg-muted"
+            >
+              <Download className="h-3.5 w-3.5" />
+              CSV
+            </a>
+            <a
+              href="/api/reports/departments/pdf"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-xs font-medium text-foreground hover:bg-muted"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              PDF
+            </a>
           </div>
+        }
+      />
 
-          {/* KPI CARDS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-xs space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-gray-500 uppercase tracking-wider">
-                <span>Total Complaints</span>
-                <Layers className="h-4 w-4 text-blue-600" />
-              </div>
-              <p className="text-3xl font-black text-gray-900">{data.kpis.totalComplaints}</p>
-            </div>
+      <StatStrip
+        className="mb-8"
+        items={[
+          { label: "Total complaints", value: data.kpis.totalComplaints },
+          {
+            label: "Resolution rate",
+            value: `${data.kpis.resolutionRatePercent}%`,
+            tone: "success",
+          },
+          {
+            label: "SLA compliance",
+            value: `${data.kpis.slaCompliancePercent}%`,
+            tone: "info",
+          },
+          {
+            label: "Active breaches",
+            value: data.kpis.slaBreaches,
+            tone: data.kpis.slaBreaches > 0 ? "danger" : "default",
+          },
+        ]}
+      />
 
-            <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-xs space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-gray-500 uppercase tracking-wider">
-                <span>Resolution Rate</span>
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-              </div>
-              <p className="text-3xl font-black text-emerald-600">{data.kpis.resolutionRatePercent}%</p>
-            </div>
+      <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="rounded-lg border border-border bg-card p-4 sm:p-5 lg:col-span-2">
+          <h2 className="text-sm font-semibold text-foreground">Complaint volume</h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Submitted vs resolved over the selected timeframe.
+          </p>
+          <ComplaintTrendChart data={data.trend} />
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4 sm:p-5">
+          <h2 className="text-sm font-semibold text-foreground">By category</h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Share of complaints across categories.
+          </p>
+          <CategoryPieChart data={data.categoryDist} />
+        </div>
+      </div>
 
-            <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-xs space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-gray-500 uppercase tracking-wider">
-                <span>SLA Compliance</span>
-                <ShieldCheck className="h-4 w-4 text-indigo-600" />
-              </div>
-              <p className="text-3xl font-black text-indigo-600">{data.kpis.slaCompliancePercent}%</p>
-            </div>
-
-            <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-xs space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-gray-500 uppercase tracking-wider">
-                <span>Active Breaches</span>
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-              </div>
-              <p className="text-3xl font-black text-amber-600">{data.kpis.slaBreaches}</p>
-            </div>
-          </div>
-
-          {/* CHARTS */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-              <h2 className="text-base font-bold text-gray-900">Complaint Volume Trend</h2>
-              <ComplaintTrendChart data={data.trend} />
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-              <h2 className="text-base font-bold text-gray-900">Category Volume</h2>
-              <CategoryPieChart data={data.categoryDist} />
-            </div>
-          </div>
-
-          {/* OFFICER WORKLOAD TABLE */}
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xs">
-            <div className="p-4 border-b bg-gray-50/50 flex items-center justify-between">
-              <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Department Officer Workload ({data.officerWorkload.length} Officers)
-              </span>
-            </div>
-
+      <section>
+        <h2 className="mb-3 text-sm font-semibold text-foreground">
+          Officer workload ({data.officerWorkload.length})
+        </h2>
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
+          {data.officerWorkload.length === 0 ? (
+            <EmptyState
+              title="No officer workload data"
+              description="Assigned officers will appear here once cases are allocated."
+              compact
+            />
+          ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full border-collapse text-left text-sm">
                 <thead>
-                  <tr className="bg-gray-100/70 border-b border-gray-200 text-[11px] font-bold text-gray-600 uppercase tracking-wider">
-                    <th className="py-3 px-4">Officer</th>
-                    <th className="py-3 px-4">Assigned</th>
-                    <th className="py-3 px-4">Open</th>
-                    <th className="py-3 px-4">Resolved</th>
-                    <th className="py-3 px-4">Breached</th>
-                    <th className="py-3 px-4">Avg Resolution Time</th>
+                  <tr className="border-b border-border bg-muted/40 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <th className="px-3 py-2.5 font-medium">Officer</th>
+                    <th className="px-3 py-2.5 font-medium">Assigned</th>
+                    <th className="px-3 py-2.5 font-medium">Open</th>
+                    <th className="px-3 py-2.5 font-medium">Resolved</th>
+                    <th className="px-3 py-2.5 font-medium">Breached</th>
+                    <th className="px-3 py-2.5 font-medium">Avg resolution</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 text-sm">
+                <tbody className="divide-y divide-border">
                   {data.officerWorkload.map((o) => (
-                    <tr key={o.officerId} className="hover:bg-gray-50 transition">
-                      <td className="py-3 px-4 font-bold text-gray-900">{o.officerName}</td>
-                      <td className="py-3 px-4 font-extrabold text-gray-900">{o.totalAssigned}</td>
-                      <td className="py-3 px-4 text-amber-600 font-medium">{o.openComplaints}</td>
-                      <td className="py-3 px-4 text-emerald-600 font-medium">{o.resolvedComplaints}</td>
-                      <td className="py-3 px-4 text-red-600 font-bold">{o.breachedComplaints}</td>
-                      <td className="py-3 px-4 text-gray-700 font-medium">{o.avgResolutionHours} hrs</td>
+                    <tr key={o.officerId} className="hover:bg-muted/30">
+                      <td className="px-3 py-2.5 font-medium text-foreground">
+                        {o.officerName}
+                      </td>
+                      <td className="px-3 py-2.5 tabular-nums">{o.totalAssigned}</td>
+                      <td className="px-3 py-2.5 tabular-nums text-[var(--cr-warn)]">
+                        {o.openComplaints}
+                      </td>
+                      <td className="px-3 py-2.5 tabular-nums text-[var(--cr-success)]">
+                        {o.resolvedComplaints}
+                      </td>
+                      <td className="px-3 py-2.5 tabular-nums text-[var(--cr-danger)]">
+                        {o.breachedComplaints}
+                      </td>
+                      <td className="px-3 py-2.5 text-muted-foreground">
+                        {o.avgResolutionHours} hrs
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
+          )}
         </div>
-      </main>
-    </div>
+      </section>
+    </AppShell>
   );
 }

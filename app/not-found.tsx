@@ -1,23 +1,20 @@
 import Link from "next/link";
-import { FileQuestion } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <div className="forbidden-page">
-      <div className="forbidden-card">
-        <div className="forbidden-icon-wrap">
-          <FileQuestion className="forbidden-icon" aria-hidden="true" />
-        </div>
-        <h1 className="forbidden-title">Page not found</h1>
-        <p className="forbidden-body">
+    <div className="error-page">
+      <div className="error-page-inner">
+        <p className="error-code">404</p>
+        <h1 className="error-title">Page not found</h1>
+        <p className="error-body">
           That address is not a CivicResolve page. Check the URL or return
           home.
         </p>
-        <div className="forbidden-actions">
-          <Link href="/" className="forbidden-btn-primary">
+        <div className="error-actions">
+          <Link href="/" className="landing-nav-link-primary">
             Home
           </Link>
-          <Link href="/track" className="forbidden-btn-outline">
+          <Link href="/track" className="landing-nav-link-outline">
             Track a complaint
           </Link>
         </div>

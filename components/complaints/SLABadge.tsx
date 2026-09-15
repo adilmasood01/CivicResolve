@@ -1,5 +1,6 @@
 import type { SLAInfo } from "@/lib/sla";
-import { Clock, AlertTriangle, CheckCircle2, ShieldAlert, XCircle } from "lucide-react";
+import { Clock, AlertTriangle, CheckCircle2, ShieldAlert } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface SLABadgeProps {
   slaInfo: SLAInfo;
@@ -10,44 +11,47 @@ interface SLABadgeProps {
 export function SLABadge({ slaInfo, showProgress = false, className = "" }: SLABadgeProps) {
   const { status, timeRemainingLabel, progressPercent } = slaInfo;
 
-  let badgeStyle = "bg-emerald-50 text-emerald-700 border-emerald-200";
+  let badgeStyle = "bg-[var(--cr-success-bg)] text-[var(--cr-success)] border-[var(--cr-success)]/20";
   let Icon = Clock;
   let labelText = timeRemainingLabel;
 
   if (status === "DUE_SOON") {
-    badgeStyle = "bg-amber-50 text-amber-800 border-amber-300 font-semibold";
+    badgeStyle = "bg-[var(--cr-warn-bg)] text-[var(--cr-warn)] border-[var(--cr-warn)]/25";
     Icon = AlertTriangle;
-    labelText = `⚠ SLA Due Soon — ${timeRemainingLabel}`;
+    labelText = `Due soon — ${timeRemainingLabel}`;
   } else if (status === "BREACHED") {
-    badgeStyle = "bg-red-50 text-red-700 border-red-300 font-bold";
+    badgeStyle = "bg-[var(--cr-danger-bg)] text-[var(--cr-danger)] border-[var(--cr-danger)]/20";
     Icon = ShieldAlert;
-    labelText = `⚠ SLA Breached — ${timeRemainingLabel}`;
+    labelText = `Breached — ${timeRemainingLabel}`;
   } else if (status === "COMPLETED") {
-    badgeStyle = "bg-slate-100 text-slate-700 border-slate-200";
+    badgeStyle = "bg-muted text-muted-foreground border-border";
     Icon = CheckCircle2;
     labelText = "Completed";
   }
 
   return (
-    <div className={`inline-flex flex-col gap-1.5 w-full ${className}`}>
+    <div className={cn("inline-flex w-full flex-col gap-1.5", className)}>
       <div className="flex items-center justify-between gap-2">
         <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs border ${badgeStyle}`}
+          className={cn(
+            "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] font-medium",
+            badgeStyle
+          )}
         >
-          <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
           <span>{labelText}</span>
         </span>
 
         {showProgress && status !== "COMPLETED" && (
-          <span className="text-[11px] font-medium text-gray-500 font-mono">
-            {progressPercent}% elapsed
+          <span className="font-mono text-[11px] text-muted-foreground">
+            {progressPercent}%
           </span>
         )}
       </div>
 
       {showProgress && status !== "COMPLETED" && (
         <div
-          className="w-full bg-gray-200 rounded-full h-2 overflow-hidden"
+          className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
           role="progressbar"
           aria-valuenow={progressPercent}
           aria-valuemin={0}
@@ -55,13 +59,14 @@ export function SLABadge({ slaInfo, showProgress = false, className = "" }: SLAB
           aria-label={`SLA Progress ${progressPercent}%`}
         >
           <div
-            className={`h-2 rounded-full transition-all duration-500 ${
+            className={cn(
+              "h-1.5 rounded-full transition-all",
               status === "BREACHED"
-                ? "bg-red-600"
+                ? "bg-[var(--cr-danger)]"
                 : status === "DUE_SOON"
-                ? "bg-amber-500"
-                : "bg-emerald-500"
-            }`}
+                  ? "bg-[var(--cr-warn)]"
+                  : "bg-[var(--cr-success)]"
+            )}
             style={{ width: `${Math.min(100, Math.max(5, progressPercent))}%` }}
           />
         </div>

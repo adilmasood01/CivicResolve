@@ -5,7 +5,7 @@ import { formatDateTime } from "@/lib/utils";
 import type { CommentType } from "@prisma/client";
 import type { SafeUser, SessionUser } from "@/types";
 import { addCommentAction } from "@/app/actions/complaints";
-import { MessageSquare, Lock, Send, AlertCircle } from "lucide-react";
+import { Lock, Send, AlertCircle } from "lucide-react";
 
 export interface CommentItem {
   id: string;
@@ -40,7 +40,6 @@ export function CommentSection({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  // Filter comments based on tab
   const visibleComments = comments.filter((c) => {
     if (!isStaff && c.type === "INTERNAL_NOTE") return false;
     if (activeTab === "PUBLIC") return c.type === "PUBLIC_COMMENT";
@@ -54,7 +53,6 @@ export function CommentSection({
 
     setError(null);
     startTransition(async () => {
-      // Force citizens to PUBLIC_COMMENT
       const typeToSend = isStaff ? commentType : "PUBLIC_COMMENT";
       const res = await addCommentAction(complaintId, content, typeToSend);
 
@@ -67,93 +65,80 @@ export function CommentSection({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4 border-b pb-4">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-blue-600" aria-hidden="true" />
-          <h3 className="font-semibold text-gray-900 text-lg">Comments & Updates</h3>
-          <span className="text-xs font-semibold px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full">
-            {visibleComments.length}
-          </span>
+    <section className="mb-8 border-t border-border pt-6">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">
+            Comments
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
+              ({visibleComments.length})
+            </span>
+          </h2>
         </div>
 
         {isStaff && (
-          <div className="flex bg-gray-100 p-1 rounded-lg text-xs font-medium">
-            <button
-              type="button"
-              onClick={() => setActiveTab("ALL")}
-              className={`px-3 py-1 rounded-md transition ${
-                activeTab === "ALL"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              All ({comments.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("PUBLIC")}
-              className={`px-3 py-1 rounded-md transition ${
-                activeTab === "PUBLIC"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Public
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("INTERNAL")}
-              className={`px-3 py-1 rounded-md transition ${
-                activeTab === "INTERNAL"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Internal Notes
-            </button>
+          <div className="flex gap-1 text-xs">
+            {(
+              [
+                ["ALL", `All (${comments.length})`],
+                ["PUBLIC", "Public"],
+                ["INTERNAL", "Internal"],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setActiveTab(key)}
+                className={`rounded-md px-2.5 py-1 font-medium transition-colors ${
+                  activeTab === key
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Comment List */}
-      <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
+      <div className="mb-4 max-h-[500px] space-y-3 overflow-y-auto pr-1">
         {visibleComments.length === 0 ? (
-          <div className="text-center py-8 text-gray-500 text-sm bg-gray-50 rounded-lg border border-dashed border-gray-200">
+          <p className="py-6 text-center text-sm text-muted-foreground">
             No comments posted yet.
-          </div>
+          </p>
         ) : (
           visibleComments.map((c) => {
             const isInternal = c.type === "INTERNAL_NOTE";
             return (
               <div
                 key={c.id}
-                className={`p-4 rounded-xl border text-sm transition ${
+                className={`rounded-md border p-3 text-sm ${
                   isInternal
-                    ? "bg-amber-50/60 border-amber-200/80"
-                    : "bg-gray-50/80 border-gray-200"
+                    ? "border-amber-200/80 bg-amber-50/40"
+                    : "border-border bg-muted/20"
                 }`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-gray-900">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium text-foreground">
                       {c.author?.name || c.author?.email || "User"}
                     </span>
-                    <span className="text-xs px-2 py-0.5 rounded bg-gray-200 text-gray-700 font-medium">
-                      {c.author?.role}
+                    <span className="text-[11px] text-muted-foreground">
+                      {c.author?.role?.replace(/_/g, " ")}
                     </span>
                     {isInternal && (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 bg-amber-100 text-amber-800 rounded border border-amber-300">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800">
                         <Lock className="h-3 w-3" aria-hidden="true" />
-                        Internal Note
+                        Internal
                       </span>
                     )}
                   </div>
-                  <span className="text-xs text-gray-500">
+                  <time className="text-[11px] text-muted-foreground">
                     {formatDateTime(c.createdAt)}
-                  </span>
+                  </time>
                 </div>
-                <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+                <p className="whitespace-pre-wrap leading-relaxed text-foreground">
                   {c.content}
                 </p>
               </div>
@@ -162,73 +147,70 @@ export function CommentSection({
         )}
       </div>
 
-      {/* Add Comment Form */}
-      <form onSubmit={handleSubmit} className="space-y-3 pt-4 border-t">
+      <form onSubmit={handleSubmit} className="space-y-3 border-t border-border pt-4">
         {error && (
-          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
             <span>{error}</span>
           </div>
         )}
 
         {isStaff && (
-          <div className="flex items-center gap-4 text-xs font-medium">
-            <label className="flex items-center gap-1.5 cursor-pointer">
+          <div className="flex flex-wrap items-center gap-4 text-xs">
+            <label className="flex cursor-pointer items-center gap-1.5">
               <input
                 type="radio"
                 name="type"
                 checked={commentType === "PUBLIC_COMMENT"}
                 onChange={() => setCommentType("PUBLIC_COMMENT")}
-                className="text-blue-600 focus:ring-blue-500"
+                className="accent-primary"
               />
-              <span className="text-gray-800">Public Comment (Visible to Citizen)</span>
+              <span className="text-foreground">Public comment</span>
             </label>
-            <label className="flex items-center gap-1.5 cursor-pointer">
+            <label className="flex cursor-pointer items-center gap-1.5">
               <input
                 type="radio"
                 name="type"
                 checked={commentType === "INTERNAL_NOTE"}
                 onChange={() => setCommentType("INTERNAL_NOTE")}
-                className="text-amber-600 focus:ring-amber-500"
+                className="accent-amber-600"
               />
-              <span className="text-amber-800 font-semibold flex items-center gap-1">
+              <span className="inline-flex items-center gap-1 font-medium text-amber-800">
                 <Lock className="h-3 w-3" aria-hidden="true" />
-                Internal Staff Note Only
+                Internal note
               </span>
             </label>
           </div>
         )}
 
-        <div className="relative">
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={3}
-            placeholder={
-              commentType === "INTERNAL_NOTE"
-                ? "Write an internal note for staff members..."
-                : "Write a comment or response..."
-            }
-            className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
-            required
-          />
-        </div>
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          rows={3}
+          placeholder={
+            commentType === "INTERNAL_NOTE"
+              ? "Write an internal note for staff…"
+              : "Write a comment or response…"
+          }
+          className="w-full rounded-md border border-border bg-background p-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          required
+        />
 
         <div className="flex justify-end">
           <button
             type="submit"
             disabled={isPending || !content.trim()}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm text-white transition disabled:opacity-50 ${
+            className={`inline-flex items-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium text-white transition-opacity disabled:opacity-50 ${
               commentType === "INTERNAL_NOTE"
-                ? "bg-amber-600 hover:bg-amber-700"
-                : "bg-blue-600 hover:bg-blue-700"
+                ? "bg-amber-700 hover:opacity-90"
+                : "bg-primary hover:opacity-90"
             }`}
           >
             <Send className="h-4 w-4" aria-hidden="true" />
-            <span>{isPending ? "Posting..." : "Post Comment"}</span>
+            {isPending ? "Posting…" : "Post comment"}
           </button>
         </div>
       </form>
-    </div>
+    </section>
   );
 }

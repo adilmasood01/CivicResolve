@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth";
 import { getStaffOverview } from "@/services/admin.service";
 import { getDepartmentsAdmin } from "@/services/department.service";
+import { PageHeader } from "@/components/layout";
 import StaffManagementClient from "./StaffManagementClient";
 
 export const metadata: Metadata = {
@@ -26,14 +27,10 @@ export default async function AdminStaffPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Staff Roster & Officer Management</h1>
-          <p className="text-xs text-gray-500 mt-1">
-            Monitor staff workloads, assign officers to departments, manage manager appointments, and view assigned complaint statistics.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Staff Roster"
+        description="Monitor officer workloads, department assignments, and manager appointments."
+      />
 
       <StaffManagementClient
         staffList={staffList}

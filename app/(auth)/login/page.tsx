@@ -13,7 +13,8 @@ import { z } from "zod";
 import { Suspense, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, ShieldCheck, Loader2, AlertCircle } from "lucide-react";
+import Image from "next/image";
+import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,8 +80,15 @@ function LoginForm() {
     <div className="auth-card">
       {/* Header */}
       <div className="auth-header">
-        <div className="auth-logo">
-          <ShieldCheck className="auth-logo-icon" aria-hidden="true" />
+        <div className="auth-logo overflow-hidden p-0">
+          <Image
+            src="/CivicResolve.jpg"
+            alt="CivicResolve Logo"
+            width={44}
+            height={44}
+            className="h-full w-full object-cover rounded-md"
+            priority
+          />
         </div>
         <h1 className="auth-title">CivicResolve</h1>
         <p className="auth-subtitle">Sign in to your account</p>
@@ -195,15 +203,40 @@ function LoginForm() {
   );
 }
 
+function LoginFallback() {
+  return (
+    <div className="auth-card" aria-busy="true" aria-label="Loading sign in">
+      <div className="auth-header">
+        <div className="auth-logo auth-logo--quiet overflow-hidden p-0">
+          <Image
+            src="/CivicResolve.jpg"
+            alt="CivicResolve Logo"
+            width={44}
+            height={44}
+            className="h-full w-full object-cover rounded-md"
+          />
+        </div>
+        <h1 className="auth-title">CivicResolve</h1>
+        <p className="auth-subtitle">Sign in to your account</p>
+      </div>
+      <div className="auth-form" aria-hidden="true">
+        <div className="auth-field">
+          <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+          <div className="h-10 w-full animate-pulse rounded-md bg-muted" />
+        </div>
+        <div className="auth-field">
+          <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+          <div className="h-10 w-full animate-pulse rounded-md bg-muted" />
+        </div>
+        <div className="mt-1 h-11 w-full animate-pulse rounded-md bg-muted" />
+      </div>
+    </div>
+  );
+}
+
 export default function LoginPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="auth-card text-center p-8 text-slate-400">
-          Loading login form…
-        </div>
-      }
-    >
+    <Suspense fallback={<LoginFallback />}>
       <LoginForm />
     </Suspense>
   );

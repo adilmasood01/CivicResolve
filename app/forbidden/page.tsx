@@ -7,7 +7,6 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ShieldX } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
@@ -16,10 +15,14 @@ export const metadata: Metadata = {
 
 function getDashboardForRole(role: string): string {
   switch (role) {
-    case "ADMIN": return "/admin/dashboard";
-    case "DEPARTMENT_MANAGER": return "/manager/dashboard";
-    case "OFFICER": return "/staff/dashboard";
-    default: return "/dashboard";
+    case "ADMIN":
+      return "/admin/dashboard";
+    case "DEPARTMENT_MANAGER":
+      return "/manager/dashboard";
+    case "OFFICER":
+      return "/staff/dashboard";
+    default:
+      return "/dashboard";
   }
 }
 
@@ -28,26 +31,28 @@ export default async function ForbiddenPage() {
   const dashboardPath = user ? getDashboardForRole(user.role) : "/login";
 
   return (
-    <div className="forbidden-page">
-      <div className="forbidden-card">
-        <div className="forbidden-icon-wrap">
-          <ShieldX className="forbidden-icon" aria-hidden="true" />
-        </div>
-        <h1 className="forbidden-title">Access Denied</h1>
-        <p className="forbidden-body">
+    <div className="error-page">
+      <div className="error-page-inner">
+        <p className="error-code">403</p>
+        <h1 className="error-title">Access denied</h1>
+        <p className="error-body">
           You don&apos;t have permission to view this page.
           {user && (
             <>
-              {" "}Your current role is{" "}
-              <strong className="forbidden-role">{user.role.replace(/_/g, " ")}</strong>.
+              {" "}
+              Your current role is{" "}
+              <span className="error-role">
+                {user.role.replace(/_/g, " ").toLowerCase()}
+              </span>
+              .
             </>
           )}
         </p>
-        <div className="forbidden-actions">
-          <Link href={dashboardPath} className="forbidden-btn-primary">
-            Go to my dashboard
+        <div className="error-actions">
+          <Link href={dashboardPath} className="landing-nav-link-primary">
+            {user ? "Go to my dashboard" : "Sign in"}
           </Link>
-          <Link href="/" className="forbidden-btn-outline">
+          <Link href="/" className="landing-nav-link-outline">
             Home
           </Link>
         </div>

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Mail, Building2, Shield, Calendar } from "lucide-react";
 import { requireAuth, getDashboardPath } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import AuthNav from "@/components/AuthNav";
+import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -40,91 +40,52 @@ export default async function ProfilePage() {
     [record?.firstName, record?.lastName].filter(Boolean).join(" ") ||
     "Account";
 
+  const roleLabel =
+    ROLE_LABELS[record?.role ?? sessionUser.role] ?? sessionUser.role;
+
+  const fields: { label: string; value: string }[] = [
+    { label: "Name", value: displayName },
+    { label: "Email", value: record?.email ?? sessionUser.email },
+  ];
+
+  if (record?.phone) {
+    fields.push({ label: "Phone", value: record.phone });
+  }
+  if (record?.department?.name) {
+    fields.push({ label: "Department", value: record.department.name });
+  }
+  fields.push({ label: "Role", value: roleLabel });
+  fields.push({ label: "Member since", value: formatDate(record?.createdAt) });
+  if (record?.lastLoginAt) {
+    fields.push({ label: "Last sign-in", value: formatDate(record.lastLoginAt) });
+  }
+
   return (
-    <div className="dashboard-layout">
-      <AuthNav user={sessionUser} />
+    <AppShell user={sessionUser} narrow>
+      <PageHeader
+        title="Your profile"
+        description="Account details used for CivicResolve sign-in and routing."
+        actions={
+          <Link
+            href={getDashboardPath(sessionUser.role)}
+            className="text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            Back to dashboard
+          </Link>
+        }
+      />
 
-      <main className="dashboard-main">
-        <div className="dashboard-container max-w-2xl mx-auto">
-          <div className="dashboard-welcome">
-            <div>
-              <h1 className="dashboard-welcome-title">Your profile</h1>
-              <p className="dashboard-welcome-sub">
-                Account details used for CivicResolve sign-in and routing.
-              </p>
-            </div>
-            <Link
-              href={getDashboardPath(sessionUser.role)}
-              className="landing-nav-link-outline"
-            >
-              Back to dashboard
-            </Link>
+      <dl className="divide-y divide-border rounded-lg border border-border bg-card">
+        {fields.map(({ label, value }) => (
+          <div
+            key={label}
+            className="grid gap-1 px-4 py-3 sm:grid-cols-[10rem_1fr] sm:gap-4 sm:items-baseline"
+          >
+            <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+            <dd className="text-sm text-foreground">{value}</dd>
           </div>
-
-          <section className="profile-card">
-            <div className="profile-identity">
-              <div className="profile-avatar" aria-hidden="true">
-                {displayName.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h2 className="profile-name">{displayName}</h2>
-                <p className="profile-role">
-                  {ROLE_LABELS[record?.role ?? sessionUser.role] ??
-                    sessionUser.role}
-                </p>
-              </div>
-            </div>
-
-            <dl className="profile-fields">
-              <div>
-                <dt>
-                  <Mail className="h-3.5 w-3.5" aria-hidden="true" />
-                  Email
-                </dt>
-                <dd>{record?.email ?? sessionUser.email}</dd>
-              </div>
-              {record?.phone && (
-                <div>
-                  <dt>Phone</dt>
-                  <dd>{record.phone}</dd>
-                </div>
-              )}
-              {record?.department?.name && (
-                <div>
-                  <dt>
-                    <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
-                    Department
-                  </dt>
-                  <dd>{record.department.name}</dd>
-                </div>
-              )}
-              <div>
-                <dt>
-                  <Shield className="h-3.5 w-3.5" aria-hidden="true" />
-                  Role
-                </dt>
-                <dd>
-                  {ROLE_LABELS[record?.role ?? sessionUser.role] ??
-                    sessionUser.role}
-                </dd>
-              </div>
-              <div>
-                <dt>
-                  <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
-                  Member since
-                </dt>
-                <dd>{formatDate(record?.createdAt)}</dd>
-              </div>
-              {record?.lastLoginAt && (
-                <div>
-                  <dt>Last sign-in</dt>
-                  <dd>{formatDate(record.lastLoginAt)}</dd>
-                </div>
-              )}
-            </dl>
-          </section>
-        </div>
-      </main>
-    </div>
+        ))}
+      </dl>
+    </AppShell>
   );
 }

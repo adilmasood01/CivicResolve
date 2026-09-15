@@ -36,7 +36,7 @@ export function TrackForm({ defaultValue = "" }: { defaultValue?: string }) {
         />
         <button type="submit" className="track-submit">
           <Search className="h-4 w-4" aria-hidden="true" />
-          Track
+          Look up
         </button>
       </div>
     </form>

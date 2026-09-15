@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth";
 import AuthNav from "@/components/AuthNav";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/layout/EmptyState";
 import { getComplaints } from "@/services/complaint.service";
 import { ComplaintFilterBar } from "@/components/complaints/ComplaintFilterBar";
 import { ComplaintTable } from "@/components/complaints/ComplaintTable";
+import { ComplaintCard } from "@/components/complaints/ComplaintCard";
 import { Pagination } from "@/components/complaints/Pagination";
 import { Building2 } from "lucide-react";
 
@@ -38,33 +42,46 @@ export default async function ManagerComplaintsPage({
       <AuthNav user={user} />
 
       <main className="dashboard-main">
-        <div className="max-w-7xl mx-auto space-y-6">
-          <div className="flex items-center justify-between flex-wrap gap-4 border-b pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-purple-50 text-purple-600 rounded-xl border border-purple-200">
-                <Building2 className="h-6 w-6" aria-hidden="true" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
-                  Department Complaints Management
-                </h1>
-                <p className="text-sm text-gray-500">
-                  Manage department complaints, assign staff officers, and monitor SLA compliance.
-                </p>
-              </div>
-            </div>
-          </div>
+        <PageContainer>
+          <PageHeader
+            title="Department complaints"
+            description="Assign officers, monitor SLA, and oversee cases in your department."
+          />
 
           <ComplaintFilterBar />
 
-          <ComplaintTable
-            complaints={complaints}
-            getDetailHref={(id) => `/manager/complaints/${id}`}
-            showOfficer
-          />
+          {complaints.length === 0 ? (
+            <div className="rounded-lg border border-border bg-card">
+              <EmptyState
+                title="No complaints found"
+                description="There are no complaints matching your current filters."
+                icon={<Building2 className="h-8 w-8" aria-hidden="true" />}
+                compact
+              />
+            </div>
+          ) : (
+            <>
+              <div className="hidden md:block">
+                <ComplaintTable
+                  complaints={complaints}
+                  getDetailHref={(id) => `/manager/complaints/${id}`}
+                  showOfficer
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:hidden">
+                {complaints.map((c) => (
+                  <ComplaintCard
+                    key={c.id}
+                    complaint={c}
+                    detailHref={`/manager/complaints/${c.id}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
 
           <Pagination meta={meta} />
-        </div>
+        </PageContainer>
       </main>
     </div>
   );

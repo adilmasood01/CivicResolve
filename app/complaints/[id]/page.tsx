@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
 import AuthNav from "@/components/AuthNav";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { Section } from "@/components/layout/Section";
 import { getComplaintById } from "@/services/complaint.service";
 import { ComplaintStatusBadge } from "@/components/complaints/ComplaintStatusBadge";
 import { PriorityBadge } from "@/components/complaints/PriorityBadge";
@@ -14,7 +16,7 @@ import { StatusTransitionControl } from "@/components/complaints/StatusTransitio
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { getSLAInfo } from "@/lib/sla";
 import { prisma } from "@/lib/prisma";
-import { ArrowLeft, MapPin, Calendar, Building2, Tag } from "lucide-react";
+import { ArrowLeft, MapPin } from "lucide-react";
 
 export async function generateMetadata({
   params,
@@ -41,7 +43,6 @@ export default async function CitizenComplaintDetailPage({
     notFound();
   }
 
-  // Calculate live SLA status
   const slaRules = await prisma.sLARule.findMany({ where: { isActive: true } });
   const slaInfo = getSLAInfo(
     complaint.slaDeadline,
@@ -56,98 +57,104 @@ export default async function CitizenComplaintDetailPage({
       <AuthNav user={user} />
 
       <main className="dashboard-main">
-        <div className="max-w-5xl mx-auto space-y-6">
-          {/* Back link */}
-          <div>
-            <Link
-              href="/complaints"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-blue-600 transition"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back to My Complaints</span>
-            </Link>
-          </div>
+        <PageContainer>
+          <Link
+            href="/complaints"
+            className="mb-4 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+            Back to complaints
+          </Link>
 
-          {/* Header Card */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4 shadow-xs">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <span className="font-mono text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg border border-blue-200">
-                {complaint.complaintNumber}
-              </span>
-              <div className="flex items-center gap-2">
-                <PriorityBadge priority={complaint.priority} />
-                <ComplaintStatusBadge status={complaint.status} />
-              </div>
-            </div>
-
-            <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">
+          <header className="mb-8 space-y-3 border-b border-border pb-5">
+            <p className="font-mono text-sm font-medium text-primary">
+              {complaint.complaintNumber}
+            </p>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
               {complaint.title}
             </h1>
-
-            <div className="flex items-center gap-4 flex-wrap text-xs text-gray-600 pt-2 border-t">
-              <div className="flex items-center gap-1">
-                <Tag className="h-3.5 w-3.5 text-gray-400" />
-                <span className="font-semibold text-gray-800">Category:</span>
-                <span>{complaint.category.name}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Building2 className="h-3.5 w-3.5 text-gray-400" />
-                <span className="font-semibold text-gray-800">Department:</span>
-                <span>{complaint.department.name}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                <span className="font-semibold text-gray-800">Submitted:</span>
-                <span>{formatDateTime(complaint.createdAt)}</span>
-              </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <ComplaintStatusBadge status={complaint.status} />
+              <PriorityBadge priority={complaint.priority} />
+              <SLABadge slaInfo={slaInfo} />
             </div>
-          </div>
+          </header>
 
-          {/* SLA & Details grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Main content - Description & Location */}
-            <div className="md:col-span-2 space-y-6">
-              <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4 shadow-xs">
-                <h3 className="font-bold text-gray-900 text-base border-b pb-2">
-                  Description
-                </h3>
-                <p className="text-gray-800 text-sm whitespace-pre-wrap leading-relaxed">
-                  {complaint.description}
-                </p>
-
-                {complaint.location && (
-                  <div className="pt-4 border-t space-y-1">
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                      <MapPin className="h-3.5 w-3.5 text-blue-600" />
-                      Location
-                    </h4>
-                    <p className="text-sm font-medium text-gray-900">{complaint.location}</p>
-                    {complaint.latitude && complaint.longitude && (
-                      <p className="text-xs text-gray-400">
-                        GPS Coordinates: {complaint.latitude}, {complaint.longitude}
-                      </p>
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            <div className="min-w-0 space-y-0 lg:col-span-2">
+              <Section title="Information">
+                <div className="space-y-4 text-sm">
+                  <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Category</dt>
+                      <dd className="mt-0.5 font-medium text-foreground">
+                        {complaint.category.name}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Department</dt>
+                      <dd className="mt-0.5 font-medium text-foreground">
+                        {complaint.department.name}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Submitted</dt>
+                      <dd className="mt-0.5 font-medium text-foreground">
+                        {formatDateTime(complaint.createdAt)}
+                      </dd>
+                    </div>
+                    {slaInfo.deadline && (
+                      <div>
+                        <dt className="text-xs text-muted-foreground">SLA deadline</dt>
+                        <dd className="mt-0.5 font-medium text-foreground">
+                          {formatDate(slaInfo.deadline)}
+                        </dd>
+                      </div>
                     )}
+                  </dl>
+
+                  <div className="border-t border-border pt-4">
+                    <h3 className="mb-2 text-xs font-medium text-muted-foreground">
+                      Description
+                    </h3>
+                    <p className="whitespace-pre-wrap leading-relaxed text-foreground">
+                      {complaint.description}
+                    </p>
                   </div>
-                )}
-              </div>
 
-              {/* Status Actions for Citizen (e.g. RESOLVED -> CLOSED or REOPENED) */}
-              <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs">
-                <StatusTransitionControl
-                  complaintId={complaint.id}
-                  currentStatus={complaint.status}
-                  userRole={user.role}
-                />
-              </div>
+                  {complaint.location && (
+                    <div className="border-t border-border pt-4">
+                      <h3 className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                        <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
+                        Location
+                      </h3>
+                      <p className="font-medium text-foreground">{complaint.location}</p>
+                      {complaint.latitude != null && complaint.longitude != null && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          GPS: {complaint.latitude}, {complaint.longitude}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Section>
 
-              {/* Attachments Section */}
+              <StatusTransitionControl
+                complaintId={complaint.id}
+                currentStatus={complaint.status}
+                userRole={user.role}
+              />
+
+              <Section title="Timeline">
+                <ComplaintTimeline history={complaint.statusHistory} />
+              </Section>
+
               <AttachmentSection
                 complaintId={complaint.id}
                 attachments={complaint.attachments as any}
                 currentUser={user}
               />
 
-              {/* Comments Section */}
               <CommentSection
                 complaintId={complaint.id}
                 comments={complaint.comments}
@@ -155,31 +162,22 @@ export default async function CitizenComplaintDetailPage({
               />
             </div>
 
-            {/* Sidebar - Timeline & SLA Info */}
-            <div className="space-y-6">
-              {/* SLA Card */}
-              <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-3 shadow-xs">
-                <h3 className="font-bold text-gray-900 text-sm border-b pb-2">
-                  SLA Target & Resolution
-                </h3>
+            <aside className="space-y-6 lg:border-l lg:border-border lg:pl-6">
+              <div className="space-y-3">
+                <h2 className="text-sm font-semibold text-foreground">SLA progress</h2>
                 <SLABadge slaInfo={slaInfo} showProgress />
                 {slaInfo.deadline && (
-                  <p className="text-xs text-gray-500">
-                    Deadline: <strong className="text-gray-800">{formatDate(slaInfo.deadline)}</strong>
+                  <p className="text-xs text-muted-foreground">
+                    Deadline:{" "}
+                    <span className="font-medium text-foreground">
+                      {formatDate(slaInfo.deadline)}
+                    </span>
                   </p>
                 )}
               </div>
-
-              {/* Timeline Card */}
-              <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4 shadow-xs">
-                <h3 className="font-bold text-gray-900 text-sm border-b pb-2">
-                  Complaint Timeline
-                </h3>
-                <ComplaintTimeline history={complaint.statusHistory} />
-              </div>
-            </div>
+            </aside>
           </div>
-        </div>
+        </PageContainer>
       </main>
     </div>
   );

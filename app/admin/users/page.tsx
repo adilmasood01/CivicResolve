@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth";
 import { getAdminUsers } from "@/services/user.service";
 import { getDepartmentsAdmin } from "@/services/department.service";
+import { PageHeader } from "@/components/layout";
 import UserManagementClient from "./UserManagementClient";
 
 export const metadata: Metadata = {
@@ -28,14 +29,10 @@ export default async function AdminUsersPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">User Management</h1>
-          <p className="text-xs text-gray-500 mt-1">
-            Manage system users, change administrative roles, assign departments, and manage active status.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="User Management"
+        description="Manage system users, roles, department assignments, and account status."
+      />
 
       <UserManagementClient
         currentUser={adminUser}

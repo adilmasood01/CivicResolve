@@ -8,18 +8,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
-import AuthNav from "@/components/AuthNav";
 import { prisma } from "@/lib/prisma";
 import { getSLAInfo } from "@/lib/sla";
+import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Section } from "@/components/layout/Section";
+import { StatStrip } from "@/components/layout/StatStrip";
 import { ComplaintTable } from "@/components/complaints/ComplaintTable";
-import {
-  ClipboardList,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
-  Building2,
-  ArrowRight,
-} from "lucide-react";
+import { Building2, ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Staff Dashboard | CivicResolve",
@@ -31,7 +27,6 @@ export default async function StaffDashboardPage() {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
-  // Department info if assigned
   let departmentName = "All Departments";
   if (user.departmentId) {
     const dept = await prisma.department.findUnique({
@@ -41,7 +36,6 @@ export default async function StaffDashboardPage() {
     if (dept) departmentName = dept.name;
   }
 
-  // Database stats queries
   const [assignedToMeCount, inProgressCount, resolvedTodayCount, recentAssigned, slaRules] =
     await Promise.all([
       prisma.complaint.count({
@@ -77,90 +71,90 @@ export default async function StaffDashboardPage() {
     slaInfo: getSLAInfo(c.slaDeadline, c.status, slaRules, c.priority, c.createdAt),
   }));
 
-  const slaWarningsCount = complaintsWithSLA.filter(
+  const dueSoonCount = complaintsWithSLA.filter((c) => c.slaInfo.status === "DUE_SOON").length;
+  const breachedCount = complaintsWithSLA.filter((c) => c.slaInfo.status === "BREACHED").length;
+  const attentionCases = complaintsWithSLA.filter(
     (c) => c.slaInfo.status === "DUE_SOON" || c.slaInfo.status === "BREACHED"
-  ).length;
+  );
+
+  const openCount = assignedToMeCount;
 
   return (
-    <div className="dashboard-layout">
-      <AuthNav user={user} />
+    <AppShell user={user}>
+      <PageHeader
+        title="Officer dashboard"
+        description={`Welcome, ${user.name?.split(" ")[0] ?? "Officer"} — manage assigned complaints and department tasks.`}
+        actions={
+          user.departmentId ? (
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground">
+              <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
+              {departmentName}
+            </span>
+          ) : null
+        }
+      />
 
-      <main className="dashboard-main">
-        <div className="dashboard-container max-w-6xl mx-auto space-y-8">
-          {/* Welcome banner */}
-          <div className="dashboard-welcome">
-            <div>
-              <h1 className="dashboard-welcome-title">Officer Dashboard</h1>
-              <p className="dashboard-welcome-sub">
-                Welcome, {user.name?.split(" ")[0] ?? "Officer"} — manage your assigned complaints & department tasks
-              </p>
-            </div>
-            {user.departmentId && (
-              <div className="dashboard-dept-badge">
-                <Building2 className="h-4 w-4" aria-hidden="true" />
-                <span>{departmentName}</span>
-              </div>
-            )}
-          </div>
+      <StatStrip
+        className="mb-8"
+        items={[
+          {
+            label: "Open / assigned",
+            value: openCount,
+            hint: resolvedTodayCount > 0 ? `${resolvedTodayCount} resolved today` : undefined,
+          },
+          { label: "In progress", value: inProgressCount, tone: "info" },
+          {
+            label: "Due soon",
+            value: dueSoonCount,
+            tone: dueSoonCount > 0 ? "warn" : "default",
+            hint: "In recent inbox",
+          },
+          {
+            label: "Breached",
+            value: breachedCount,
+            tone: breachedCount > 0 ? "danger" : "default",
+            hint: "In recent inbox",
+          },
+        ]}
+      />
 
-          {/* Stats */}
-          <div className="dashboard-stats-grid">
-            {[
-              { label: "Assigned to Me", value: assignedToMeCount, icon: ClipboardList, color: "stat-blue" },
-              { label: "In Progress", value: inProgressCount, icon: Clock, color: "stat-amber" },
-              { label: "Resolved Today", value: resolvedTodayCount, icon: CheckCircle2, color: "stat-green" },
-              { label: "SLA Alerts", value: slaWarningsCount, icon: AlertTriangle, color: "stat-red" },
-            ].map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className={`dashboard-stat-card ${color}`}>
-                <div className="stat-icon-wrap">
-                  <Icon className="h-5 w-5" aria-hidden="true" />
-                </div>
-                <div>
-                  <p className="stat-label">{label}</p>
-                  <p className="stat-value">{value}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+      {attentionCases.length > 0 && (
+        <Section
+          title="Cases requiring attention"
+          description="Recent inbox items with due-soon or breached SLA."
+        >
+          <ComplaintTable
+            complaints={attentionCases}
+            getDetailHref={(id) => `/staff/complaints/${id}`}
+          />
+        </Section>
+      )}
 
-          {/* Quick links */}
-          <div className="dashboard-quick-links">
-            <h2 className="dashboard-section-title">Quick Actions</h2>
-            <div className="quick-links-grid">
-              {[
-                { href: "/staff/complaints", icon: ClipboardList, label: "My complaints inbox", desc: "View all complaints assigned to you" },
-              ].map(({ href, icon: Icon, label, desc }) => (
-                <Link key={href} href={href} className="quick-link-card">
-                  <Icon className="quick-link-icon" aria-hidden="true" />
-                  <div>
-                    <p className="quick-link-title">{label}</p>
-                    <p className="quick-link-desc">{desc}</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
+      <Section
+        title="Recent inbox"
+        actions={
+          <Link
+            href="/staff/complaints"
+            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+          >
+            Go to inbox
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </Link>
+        }
+      >
+        <ComplaintTable
+          complaints={complaintsWithSLA}
+          getDetailHref={(id) => `/staff/complaints/${id}`}
+          emptyTitle="No complaints in your inbox"
+          emptyDescription="Assigned and department cases will appear here."
+        />
+      </Section>
 
-          {/* Recent Complaints Table */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">Recent Inbox Complaints</h2>
-              <Link
-                href="/staff/complaints"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 transition"
-              >
-                <span>Go to Inbox</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-
-            <ComplaintTable
-              complaints={complaintsWithSLA}
-              getDetailHref={(id) => `/staff/complaints/${id}`}
-            />
-          </div>
-        </div>
-      </main>
-    </div>
+      <nav className="flex flex-wrap gap-x-5 gap-y-2 border-t border-border pt-5 text-sm">
+        <Link href="/staff/complaints" className="text-primary hover:underline">
+          My complaints inbox
+        </Link>
+      </nav>
+    </AppShell>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback, useState, useEffect } from "react";
-import { Search, X, Filter, Bookmark, Download, FileText, Calendar, PlusCircle } from "lucide-react";
+import { Search, X, Bookmark, Download, FileText } from "lucide-react";
 import { ComplaintStatus, Priority } from "@prisma/client";
 import { PresetModal } from "./PresetModal";
 
@@ -12,6 +12,9 @@ interface ComplaintFilterBarProps {
   categories?: { id: string; name: string }[];
   userRole?: string;
 }
+
+const selectClass =
+  "h-8 rounded-md border border-border bg-card px-2 text-xs text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40";
 
 export function ComplaintFilterBar({
   showDepartmentFilter = false,
@@ -37,7 +40,7 @@ export function ComplaintFilterBar({
         setPresets(data);
       }
     } catch {
-      // Non-critical background fetch error
+      // Non-critical
     } finally {
       setLoadingPresets(false);
     }
@@ -55,15 +58,14 @@ export function ComplaintFilterBar({
       } else {
         params.delete(name);
       }
-      params.set("page", "1"); // Reset to page 1 on filter change
+      params.set("page", "1");
       return params.toString();
     },
     [searchParams]
   );
 
   const handleFilterChange = (name: string, value: string) => {
-    const queryString = createQueryString(name, value || null);
-    router.push(`${pathname}?${queryString}`);
+    router.push(`${pathname}?${createQueryString(name, value || null)}`);
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -106,13 +108,11 @@ export function ComplaintFilterBar({
   };
 
   const handleExportCSV = () => {
-    const query = searchParams.toString();
-    window.open(`/api/reports/complaints/csv?${query}`, "_blank");
+    window.open(`/api/reports/complaints/csv?${searchParams.toString()}`, "_blank");
   };
 
   const handleExportPDF = () => {
-    const query = searchParams.toString();
-    window.open(`/api/reports/complaints/pdf?${query}`, "_blank");
+    window.open(`/api/reports/complaints/pdf?${searchParams.toString()}`, "_blank");
   };
 
   const hasActiveFilters =
@@ -126,108 +126,57 @@ export function ComplaintFilterBar({
     searchParams.has("dateTo");
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 shadow-xs">
-      <div className="flex items-center justify-between flex-wrap gap-2 border-b pb-3">
-        <div className="flex items-center gap-2 text-sm font-bold text-gray-800">
-          <Filter className="h-4 w-4 text-blue-600" />
-          <span>Advanced Search & Filters</span>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Preset Selector */}
-          <div className="relative">
-            <select
-              onChange={(e) => {
-                const p = presets.find((pr) => pr.id === e.target.value);
-                if (p) applyPreset(p.filters);
-              }}
-              defaultValue=""
-              className="text-xs bg-gray-50 border border-gray-300 rounded-xl px-3 py-1.5 outline-none focus:border-blue-500 font-medium text-gray-700"
-            >
-              <option value="" disabled>
-                {loadingPresets ? "Loading presets..." : "Loaded Presets"}
-              </option>
-              {presets.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} {p.isShared ? "(Shared)" : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-
+    <div className="mb-5 space-y-3">
+      <form onSubmit={handleSearchSubmit} className="relative max-w-md">
+        <Search
+          className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+          aria-hidden="true"
+        />
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search complaints…"
+          aria-label="Search complaints"
+          className="h-8 w-full rounded-md border border-border bg-card pl-8 pr-8 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+        />
+        {search ? (
           <button
-            onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-xl border border-gray-300 hover:bg-gray-50 text-gray-700 transition"
+            type="button"
+            onClick={() => {
+              setSearch("");
+              handleFilterChange("search", "");
+            }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            aria-label="Clear search"
           >
-            <Bookmark className="h-3.5 w-3.5 text-blue-600" />
-            <span>Save Preset</span>
+            <X className="h-3.5 w-3.5" />
           </button>
+        ) : null}
+      </form>
 
-          {/* Export Actions */}
-          <button
-            onClick={handleExportCSV}
-            className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition"
-          >
-            <Download className="h-3.5 w-3.5" />
-            <span>Export CSV</span>
-          </button>
-
-          <button
-            onClick={handleExportPDF}
-            className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition"
-          >
-            <FileText className="h-3.5 w-3.5" />
-            <span>PDF Report</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        {/* Search */}
-        <form onSubmit={handleSearchSubmit} className="relative sm:col-span-2">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search title, #, description, location..."
-            className="w-full pl-9 pr-8 py-2 text-sm bg-gray-50 border border-gray-300 rounded-xl outline-none focus:border-blue-500 focus:bg-white"
-          />
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-          {search && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearch("");
-                handleFilterChange("search", "");
-              }}
-              className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </form>
-
-        {/* Status Filter */}
+      <div className="flex flex-wrap items-center gap-2">
         <select
           value={searchParams.get("status") || ""}
           onChange={(e) => handleFilterChange("status", e.target.value)}
-          className="text-sm bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 outline-none focus:border-blue-500"
+          className={selectClass}
+          aria-label="Status"
         >
-          <option value="">All Statuses</option>
+          <option value="">Status</option>
           {Object.values(ComplaintStatus).map((s) => (
             <option key={s} value={s}>
-              {s.replace("_", " ")}
+              {s.replace(/_/g, " ")}
             </option>
           ))}
         </select>
 
-        {/* Priority Filter */}
         <select
           value={searchParams.get("priority") || ""}
           onChange={(e) => handleFilterChange("priority", e.target.value)}
-          className="text-sm bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 outline-none focus:border-blue-500"
+          className={selectClass}
+          aria-label="Priority"
         >
-          <option value="">All Priorities</option>
+          <option value="">Priority</option>
           {Object.values(Priority).map((p) => (
             <option key={p} value={p}>
               {p}
@@ -235,27 +184,27 @@ export function ComplaintFilterBar({
           ))}
         </select>
 
-        {/* SLA Status Filter */}
         <select
           value={searchParams.get("slaStatus") || ""}
           onChange={(e) => handleFilterChange("slaStatus", e.target.value)}
-          className="text-sm bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 outline-none focus:border-blue-500"
+          className={selectClass}
+          aria-label="SLA status"
         >
-          <option value="">All SLA States</option>
-          <option value="ON_TRACK">On Track</option>
-          <option value="DUE_SOON">Due Soon</option>
+          <option value="">SLA</option>
+          <option value="ON_TRACK">On track</option>
+          <option value="DUE_SOON">Due soon</option>
           <option value="BREACHED">Breached</option>
           <option value="COMPLETED">Completed</option>
         </select>
 
-        {/* Category Filter */}
         {categories.length > 0 && (
           <select
             value={searchParams.get("categoryId") || ""}
             onChange={(e) => handleFilterChange("categoryId", e.target.value)}
-            className="text-sm bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 outline-none focus:border-blue-500"
+            className={selectClass}
+            aria-label="Category"
           >
-            <option value="">All Categories</option>
+            <option value="">Category</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -264,14 +213,14 @@ export function ComplaintFilterBar({
           </select>
         )}
 
-        {/* Department Filter (Admin view) */}
         {showDepartmentFilter && departments.length > 0 && (
           <select
             value={searchParams.get("departmentId") || ""}
             onChange={(e) => handleFilterChange("departmentId", e.target.value)}
-            className="text-sm bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 outline-none focus:border-blue-500"
+            className={selectClass}
+            aria-label="Department"
           >
-            <option value="">All Departments</option>
+            <option value="">Department</option>
             {departments.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
@@ -280,39 +229,83 @@ export function ComplaintFilterBar({
           </select>
         )}
 
-        {/* Date From */}
-        <div className="relative">
-          <input
-            type="date"
-            value={searchParams.get("dateFrom") || ""}
-            onChange={(e) => handleFilterChange("dateFrom", e.target.value)}
-            className="w-full text-xs bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 outline-none focus:border-blue-500"
-          />
-        </div>
+        <input
+          type="date"
+          value={searchParams.get("dateFrom") || ""}
+          onChange={(e) => handleFilterChange("dateFrom", e.target.value)}
+          className={selectClass}
+          aria-label="From date"
+        />
+        <input
+          type="date"
+          value={searchParams.get("dateTo") || ""}
+          onChange={(e) => handleFilterChange("dateTo", e.target.value)}
+          className={selectClass}
+          aria-label="To date"
+        />
 
-        {/* Date To */}
-        <div className="relative">
-          <input
-            type="date"
-            value={searchParams.get("dateTo") || ""}
-            onChange={(e) => handleFilterChange("dateTo", e.target.value)}
-            className="w-full text-xs bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 outline-none focus:border-blue-500"
-          />
-        </div>
-      </div>
-
-      {hasActiveFilters && (
-        <div className="flex justify-end pt-1">
+        {hasActiveFilters && (
           <button
             type="button"
             onClick={clearAllFilters}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-red-600 transition"
+            className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" />
-            <span>Reset Active Filters</span>
+            Reset
+          </button>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+        <select
+          onChange={(e) => {
+            const p = presets.find((pr) => pr.id === e.target.value);
+            if (p) applyPreset(p.filters);
+            e.target.value = "";
+          }}
+          defaultValue=""
+          className={selectClass}
+          aria-label="Saved presets"
+        >
+          <option value="" disabled>
+            {loadingPresets ? "Loading…" : "Presets"}
+          </option>
+          {presets.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+              {p.isShared ? " (shared)" : ""}
+            </option>
+          ))}
+        </select>
+
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+          className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-card px-2.5 text-xs font-medium text-foreground hover:bg-muted"
+        >
+          <Bookmark className="h-3.5 w-3.5 text-muted-foreground" />
+          Save
+        </button>
+
+        <div className="ml-auto flex gap-2">
+          <button
+            type="button"
+            onClick={handleExportCSV}
+            className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-card px-2.5 text-xs font-medium text-foreground hover:bg-muted"
+          >
+            <Download className="h-3.5 w-3.5" />
+            CSV
+          </button>
+          <button
+            type="button"
+            onClick={handleExportPDF}
+            className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-card px-2.5 text-xs font-medium text-foreground hover:bg-muted"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            PDF
           </button>
         </div>
-      )}
+      </div>
 
       <PresetModal
         isOpen={isModalOpen}

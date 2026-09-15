@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth";
 import { getSLARulesAdmin } from "@/services/sla.service";
+import { PageHeader } from "@/components/layout";
 import SLAManagementClient from "./SLAManagementClient";
 
 export const metadata: Metadata = {
@@ -13,14 +14,10 @@ export default async function AdminSLAPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">SLA Rule Management</h1>
-          <p className="text-xs text-gray-500 mt-1">
-            Configure resolution targets and warning threshold triggers across complaint priority tiers.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="SLA Rule Management"
+        description="Configure resolution targets and warning thresholds by complaint priority."
+      />
 
       <SLAManagementClient initialRules={rules} />
     </div>

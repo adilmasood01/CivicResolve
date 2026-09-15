@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requireAuth } from "@/lib/auth";
-import AuthNav from "@/components/AuthNav";
+import { AppShell } from "@/components/layout/AppShell";
 import { getUserNotifications } from "@/services/notification.service";
 import NotificationCenterClient from "@/components/notifications/NotificationCenterClient";
 
@@ -14,17 +14,11 @@ export default async function NotificationCenterPage() {
   const initialData = await getUserNotifications(user, { page: 1, pageSize: 20 });
 
   return (
-    <div className="dashboard-layout">
-      <AuthNav user={user} unreadCount={initialData.unreadCount} />
-
-      <main className="dashboard-main">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <NotificationCenterClient
-            currentUser={user}
-            initialData={initialData}
-          />
-        </div>
-      </main>
-    </div>
+    <AppShell user={user} unreadCount={initialData.unreadCount} narrow>
+      <NotificationCenterClient
+        currentUser={user}
+        initialData={initialData}
+      />
+    </AppShell>
   );
 }

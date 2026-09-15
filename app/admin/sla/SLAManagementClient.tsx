@@ -3,29 +3,34 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveSLARuleAction } from "@/app/actions/admin";
+import { EmptyState } from "@/components/layout";
 import { Priority } from "@prisma/client";
 import {
-  Timer,
   Edit2,
   CheckCircle2,
   XCircle,
-  AlertTriangle,
   Loader2,
   ShieldAlert,
-  Clock,
   Plus,
+  Timer,
+  X,
 } from "lucide-react";
 
 interface SLAManagementClientProps {
   initialRules: any[];
 }
 
-const PRIORITY_BADGES: Record<string, { label: string; bg: string; text: string }> = {
-  LOW: { label: "LOW PRIORITY", bg: "bg-blue-100", text: "text-blue-800" },
-  MEDIUM: { label: "MEDIUM PRIORITY", bg: "bg-emerald-100", text: "text-emerald-800" },
-  HIGH: { label: "HIGH PRIORITY", bg: "bg-amber-100", text: "text-amber-800" },
-  CRITICAL: { label: "CRITICAL PRIORITY", bg: "bg-red-100", text: "text-red-800" },
+const PRIORITY_BADGES: Record<string, { label: string; className: string }> = {
+  LOW: { label: "LOW", className: "bg-blue-50 text-blue-800" },
+  MEDIUM: { label: "MEDIUM", className: "bg-emerald-50 text-emerald-800" },
+  HIGH: { label: "HIGH", className: "bg-amber-50 text-amber-800" },
+  CRITICAL: { label: "CRITICAL", className: "bg-red-50 text-red-800" },
 };
+
+const inputClass =
+  "h-8 w-full rounded-md border border-border bg-card px-2.5 text-xs text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40";
+const selectClass =
+  "h-8 w-full rounded-md border border-border bg-card px-2 text-xs text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40";
 
 export default function SLAManagementClient({ initialRules }: SLAManagementClientProps) {
   const router = useRouter();
@@ -78,116 +83,160 @@ export default function SLAManagementClient({ initialRules }: SLAManagementClien
   };
 
   return (
-    <div className="space-y-6">
-      {/* Immutability Notice Banner */}
-      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 text-amber-900 shadow-xs">
-        <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-        <div className="text-xs space-y-1">
-          <p className="font-bold">Historical SLA Integrity Notice</p>
+    <div className="space-y-4">
+      <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+        <div className="space-y-0.5">
+          <p className="font-medium">Historical SLA integrity</p>
           <p className="text-amber-800">
-            Updating an SLA rule configuration applies to newly created complaints only. Existing complaint SLA deadlines (<code className="font-mono bg-amber-100 px-1 py-0.5 rounded">Complaint.slaDeadline</code>) will remain strictly unchanged to preserve historical compliance records.
+            Rule updates apply to newly created complaints only. Existing{" "}
+            <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-[10px]">
+              Complaint.slaDeadline
+            </code>{" "}
+            values stay unchanged.
           </p>
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-gray-500">Configured Priority Rules ({initialRules.length})</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-muted-foreground">
+          {initialRules.length} priority rule{initialRules.length === 1 ? "" : "s"}
+        </p>
         <button
           type="button"
           onClick={handleOpenCreate}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-md shadow-blue-900/20"
+          className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90"
         >
-          <Plus className="h-4 w-4" />
-          <span>Add / Update Priority Rule</span>
+          <Plus className="h-3.5 w-3.5" />
+          Add / Update Rule
         </button>
       </div>
 
-      {/* Rules Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {initialRules.map((rule) => {
-          const badge = PRIORITY_BADGES[rule.priority] || PRIORITY_BADGES.LOW;
+      {initialRules.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card">
+          <EmptyState
+            title="No SLA rules configured"
+            description="Add a priority rule to define resolution targets and warning thresholds."
+            icon={<Timer className="h-8 w-8" aria-hidden="true" />}
+            action={
+              <button
+                type="button"
+                onClick={handleOpenCreate}
+                className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add Rule
+              </button>
+            }
+            compact
+          />
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <th className="px-3 py-2.5 font-medium">Priority</th>
+                  <th className="px-3 py-2.5 font-medium">Resolution Target</th>
+                  <th className="px-3 py-2.5 font-medium">Warning Trigger</th>
+                  <th className="px-3 py-2.5 font-medium">Status</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {initialRules.map((rule) => {
+                  const badge = PRIORITY_BADGES[rule.priority] || PRIORITY_BADGES.LOW;
+                  return (
+                    <tr key={rule.id} className="transition-colors hover:bg-muted/30">
+                      <td className="px-3 py-2.5">
+                        <span
+                          className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-medium ${badge.className}`}
+                        >
+                          {badge.label}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <span className="text-sm font-medium text-foreground">
+                          {rule.resolutionHours} hrs
+                        </span>
+                        <span className="ml-1.5 text-xs text-muted-foreground">
+                          ({Math.round((rule.resolutionHours / 24) * 10) / 10} days)
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-xs font-medium text-amber-700">
+                        At {rule.warningThresholdPercent || 80}% elapsed
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {rule.isActive ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Active
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600">
+                            <XCircle className="h-3.5 w-3.5" />
+                            Disabled
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(rule)}
+                          className="inline-flex h-7 items-center gap-1 rounded-md border border-border bg-card px-2 text-[11px] font-medium text-foreground hover:bg-muted"
+                        >
+                          <Edit2 className="h-3 w-3" />
+                          Edit
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-          return (
-            <div
-              key={rule.id}
-              className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs flex flex-col justify-between space-y-4 hover:border-gray-300 transition"
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${badge.bg} ${badge.text}`}>
-                    {badge.label}
-                  </span>
-                  {rule.isActive ? (
-                    <span className="inline-flex items-center gap-1 text-emerald-700 text-xs font-bold">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      <span>Active</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-red-600 text-xs font-bold">
-                      <XCircle className="h-3.5 w-3.5" />
-                      <span>Disabled</span>
-                    </span>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 bg-gray-50 p-3.5 rounded-xl border border-gray-100 text-center">
-                  <div>
-                    <p className="text-[11px] text-gray-400 font-semibold">RESOLUTION TARGET</p>
-                    <p className="text-xl font-bold text-gray-900 mt-0.5">{rule.resolutionHours} Hours</p>
-                    <p className="text-[10px] text-gray-500">({Math.round(rule.resolutionHours / 24 * 10) / 10} days)</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] text-gray-400 font-semibold">WARNING TRIGGER</p>
-                    <p className="text-xl font-bold text-amber-600 mt-0.5">At {rule.warningThresholdPercent || 80}%</p>
-                    <p className="text-[10px] text-gray-500">Elapsed SLA Window</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-gray-100 flex items-center justify-end">
-                <button
-                  type="button"
-                  onClick={() => handleOpenEdit(rule)}
-                  className="w-full py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-100 font-semibold text-xs transition flex items-center justify-center gap-1.5"
-                >
-                  <Edit2 className="h-3.5 w-3.5 text-blue-600" />
-                  <span>Configure Rule</span>
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Edit/Create Rule Modal */}
       {editRule && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-gray-900 text-base">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/40"
+            aria-label="Close dialog"
+            onClick={() => setEditRule(null)}
+          />
+          <div className="relative z-10 w-full max-w-md space-y-4 rounded-lg border border-border bg-card p-5 shadow-lg">
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="text-base font-semibold text-foreground">
                 {editRule.isNew ? "Configure Priority Rule" : `Edit SLA Rule — ${editRule.priority}`}
               </h3>
-              <button type="button" onClick={() => setEditRule(null)} className="text-gray-400 hover:text-gray-600">
-                ✕
+              <button
+                type="button"
+                onClick={() => setEditRule(null)}
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
               </button>
             </div>
 
             {errorMsg && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
                 {errorMsg}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <label className="mb-1 block text-xs font-medium text-foreground">
                   Priority Tier
                 </label>
                 <select
                   value={priority}
                   disabled={!editRule.isNew}
                   onChange={(e) => setPriority(e.target.value as Priority)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 font-bold"
+                  className={selectClass}
                 >
                   <option value="LOW">LOW</option>
                   <option value="MEDIUM">MEDIUM</option>
@@ -195,9 +244,8 @@ export default function SLAManagementClient({ initialRules }: SLAManagementClien
                   <option value="CRITICAL">CRITICAL</option>
                 </select>
               </div>
-
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <label className="mb-1 block text-xs font-medium text-foreground">
                   Resolution SLA Duration (Hours) <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -207,15 +255,14 @@ export default function SLAManagementClient({ initialRules }: SLAManagementClien
                   max={2000}
                   value={resolutionHours}
                   onChange={(e) => setResolutionHours(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 font-semibold"
+                  className={inputClass}
                 />
-                <p className="text-[10px] text-gray-400 mt-1">
+                <p className="mt-1 text-[10px] text-muted-foreground">
                   Duration must be greater than 0 hours.
                 </p>
               </div>
-
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <label className="mb-1 block text-xs font-medium text-foreground">
                   Warning Threshold (% of SLA Elapsed)
                 </label>
                 <input
@@ -225,41 +272,36 @@ export default function SLAManagementClient({ initialRules }: SLAManagementClien
                   max={99}
                   value={warningThresholdPercent}
                   onChange={(e) => setWarningThresholdPercent(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 font-semibold"
+                  className={inputClass}
                 />
-                <p className="text-[10px] text-gray-400 mt-1">
-                  Trigger SLA warning notifications when this percentage of time has passed.
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  Trigger warning notifications when this percentage of time has passed.
                 </p>
               </div>
-
-              <div className="flex items-center gap-2 pt-2">
+              <label className="flex items-center gap-2 pt-1 text-xs font-medium text-foreground">
                 <input
                   type="checkbox"
-                  id="sla-active-toggle"
                   checked={isActive}
                   onChange={(e) => setIsActive(e.target.checked)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-border"
                 />
-                <label htmlFor="sla-active-toggle" className="text-xs font-medium text-gray-800">
-                  Active Rule
-                </label>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-4 border-t">
+                Active rule
+              </label>
+              <div className="flex justify-end gap-2 border-t border-border pt-4">
                 <button
                   type="button"
                   onClick={() => setEditRule(null)}
-                  className="px-4 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100 transition"
+                  className="inline-flex h-8 items-center rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground hover:bg-muted"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-md shadow-blue-900/20"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
                 >
                   {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                  <span>Save SLA Configuration</span>
+                  Save Configuration
                 </button>
               </div>
             </form>

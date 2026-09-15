@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth";
 import { getCategoriesAdmin } from "@/services/category.service";
 import { getDepartmentsAdmin } from "@/services/department.service";
+import { PageHeader } from "@/components/layout";
 import CategoryManagementClient from "./CategoryManagementClient";
 
 export const metadata: Metadata = {
@@ -26,14 +27,10 @@ export default async function AdminCategoriesPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Category Management</h1>
-          <p className="text-xs text-gray-500 mt-1">
-            Configure complaint categories and associate them with responsible municipal departments.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Category Management"
+        description="Configure complaint categories and route them to responsible departments."
+      />
 
       <CategoryManagementClient
         categories={categories}

@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 import type { SessionUser } from "@/types";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/layout/EmptyState";
 
 interface NotificationCenterClientProps {
   currentUser: SessionUser;
@@ -104,150 +106,163 @@ export default function NotificationCenterClient({
   };
 
   const getTypeIcon = (type: string) => {
+    const cls = "h-4 w-4 text-muted-foreground";
     switch (type) {
       case "SLA_WARNING":
-        return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+        return <AlertTriangle className="h-4 w-4 text-[var(--cr-warn)]" />;
       case "SLA_BREACHED":
-        return <ShieldAlert className="h-5 w-5 text-red-600" />;
+        return <ShieldAlert className="h-4 w-4 text-[var(--cr-danger)]" />;
       case "COMPLAINT_RESOLVED":
-        return <CheckCircle2 className="h-5 w-5 text-emerald-600" />;
+        return <CheckCircle2 className="h-4 w-4 text-[var(--cr-success)]" />;
       case "COMPLAINT_CLOSED":
-        return <FileCheck className="h-5 w-5 text-gray-600" />;
+        return <FileCheck className={cls} />;
       case "COMPLAINT_ASSIGNED":
-        return <UserCheck className="h-5 w-5 text-purple-600" />;
+        return <UserCheck className="h-4 w-4 text-primary" />;
       case "COMMENT_ADDED":
-        return <MessageSquare className="h-5 w-5 text-blue-600" />;
+        return <MessageSquare className="h-4 w-4 text-[var(--cr-info)]" />;
       case "COMPLAINT_REOPENED":
-        return <RotateCcw className="h-5 w-5 text-orange-500" />;
+        return <RotateCcw className="h-4 w-4 text-[var(--cr-warn)]" />;
       default:
-        return <Bell className="h-5 w-5 text-blue-600" />;
+        return <Bell className={cls} />;
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header card */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-            <Bell className="h-6 w-6" />
-          </div>
-          <div>
-            <h1 className="text-xl font-extrabold text-gray-900">
-              Notification Center
-            </h1>
-            <p className="text-xs text-gray-500">
-              Stay updated on status changes, assignments, comments, and SLA alerts.
-            </p>
-          </div>
-        </div>
+      <PageHeader
+        title="Notifications"
+        description="Status changes, assignments, comments, and SLA alerts."
+        actions={
+          unreadCount > 0 ? (
+            <button
+              type="button"
+              onClick={handleMarkAllRead}
+              disabled={isPending}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline disabled:opacity-50"
+            >
+              {isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <CheckCheck className="h-3.5 w-3.5" aria-hidden="true" />
+              )}
+              Mark all as read
+            </button>
+          ) : null
+        }
+      />
 
-        {unreadCount > 0 && (
-          <button
-            type="button"
-            onClick={handleMarkAllRead}
-            disabled={isPending}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl font-semibold text-xs transition disabled:opacity-50"
-          >
-            {isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <CheckCheck className="h-4 w-4" />
-            )}
-            <span>Mark all as read</span>
-          </button>
-        )}
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="flex items-center border-b border-gray-200 gap-2">
+      <div className="flex items-center gap-1 border-b border-border">
         <button
           type="button"
           onClick={() => setActiveTab("ALL")}
-          className={`pb-3 px-4 text-xs font-bold transition border-b-2 ${
+          className={`px-3 pb-2.5 text-xs font-medium transition-colors border-b-2 ${
             activeTab === "ALL"
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-gray-500 hover:text-gray-800"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          All Notifications ({notifications.length})
+          All ({notifications.length})
         </button>
-
         <button
           type="button"
           onClick={() => setActiveTab("UNREAD")}
-          className={`pb-3 px-4 text-xs font-bold transition border-b-2 flex items-center gap-1.5 ${
+          className={`inline-flex items-center gap-1.5 px-3 pb-2.5 text-xs font-medium transition-colors border-b-2 ${
             activeTab === "UNREAD"
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-gray-500 hover:text-gray-800"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          <span>Unread</span>
-          {unreadCount > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px]">
+          Unread
+          {unreadCount > 0 ? (
+            <span className="tabular-nums text-[11px] text-muted-foreground">
               {unreadCount}
             </span>
-          )}
+          ) : null}
         </button>
       </div>
 
-      {/* Notifications List */}
       {filteredNotifs.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center text-gray-400 space-y-2">
-          <Bell className="h-10 w-10 mx-auto text-gray-300" />
-          <p className="font-semibold text-gray-700">No notifications found</p>
-          <p className="text-xs">
-            {activeTab === "UNREAD"
-              ? "You've caught up on all your notifications!"
-              : "You have no notifications at this time."}
-          </p>
+        <div className="rounded-lg border border-border bg-card">
+          <EmptyState
+            title="No notifications"
+            description={
+              activeTab === "UNREAD"
+                ? "You're caught up — no unread notifications."
+                : "You have no notifications at this time."
+            }
+            icon={<Bell className="h-8 w-8" aria-hidden="true" />}
+            compact
+          />
         </div>
       ) : (
-        <div className="space-y-3">
+        <ul className="divide-y divide-border rounded-lg border border-border bg-card">
           {filteredNotifs.map((n) => (
-            <div
-              key={n.id}
-              onClick={() => handleMarkSingleRead(n.id)}
-              className={`p-4 rounded-2xl border transition flex items-start gap-4 ${
-                !n.isRead
-                  ? "bg-blue-50/50 border-blue-200 shadow-xs"
-                  : "bg-white border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              <div className="p-2.5 rounded-xl bg-white border border-gray-100 shadow-xs shrink-0 mt-0.5">
-                {getTypeIcon(n.type)}
-              </div>
-
-              <div className="flex-1 min-w-0 space-y-1">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <h3 className="font-bold text-gray-900 text-sm">{n.title}</h3>
-                  <span className="text-[11px] text-gray-400 flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {formatDateTime(n.createdAt)}
-                  </span>
+            <li key={n.id}>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => handleMarkSingleRead(n.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleMarkSingleRead(n.id);
+                  }
+                }}
+                className={`flex cursor-pointer items-start gap-3 px-4 py-3.5 transition-colors hover:bg-muted/30 ${
+                  !n.isRead ? "bg-primary/[0.03]" : ""
+                }`}
+              >
+                <div className="mt-0.5 shrink-0" aria-hidden="true">
+                  {getTypeIcon(n.type)}
                 </div>
 
-                <p className="text-xs text-gray-700 leading-relaxed">{n.message}</p>
-
-                {n.complaint && (
-                  <div className="pt-2 flex items-center justify-between border-t border-gray-100">
-                    <span className="font-mono text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
-                      {n.complaint.complaintNumber}
-                    </span>
-
-                    <Link
-                      href={getComplaintPath(n.complaint.id)}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 transition"
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h3
+                      className={`text-sm ${
+                        !n.isRead
+                          ? "font-semibold text-foreground"
+                          : "font-medium text-foreground"
+                      }`}
                     >
-                      <span>View Complaint Details</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
+                      {!n.isRead ? (
+                        <span
+                          className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-primary align-middle"
+                          aria-label="Unread"
+                        />
+                      ) : null}
+                      {n.title}
+                    </h3>
+                    <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                      <Clock className="h-3 w-3" aria-hidden="true" />
+                      {formatDateTime(n.createdAt)}
+                    </span>
                   </div>
-                )}
+
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    {n.message}
+                  </p>
+
+                  {n.complaint ? (
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                      <span className="font-mono text-[11px] text-primary">
+                        {n.complaint.complaintNumber}
+                      </span>
+                      <Link
+                        href={getComplaintPath(n.complaint.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                      >
+                        View complaint
+                        <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                      </Link>
+                    </div>
+                  ) : null}
+                </div>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );

@@ -22,55 +22,32 @@ export function Pagination({ meta }: PaginationProps) {
   if (meta.totalPages <= 1) return null;
 
   return (
-    <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-xl mt-4 shadow-xs">
-      <div className="flex flex-1 justify-between sm:hidden">
+    <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+      <p className="text-xs text-muted-foreground">
+        Page <span className="font-medium text-foreground">{meta.page}</span> of{" "}
+        <span className="font-medium text-foreground">{meta.totalPages}</span>
+        <span className="hidden sm:inline"> · {meta.total} total</span>
+      </p>
+      <nav className="inline-flex items-center gap-1" aria-label="Pagination">
         <button
+          type="button"
           onClick={() => handlePageChange(meta.page - 1)}
           disabled={!meta.hasPreviousPage}
-          className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-card px-2.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-40"
         >
-          Previous
+          <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
+          <span className="sr-only sm:not-sr-only">Previous</span>
         </button>
         <button
+          type="button"
           onClick={() => handlePageChange(meta.page + 1)}
           disabled={!meta.hasNextPage}
-          className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-card px-2.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-40"
         >
-          Next
+          <span className="sr-only sm:not-sr-only">Next</span>
+          <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
-      </div>
-
-      <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs text-gray-700">
-            Showing Page <span className="font-semibold">{meta.page}</span> of{" "}
-            <span className="font-semibold">{meta.totalPages}</span> ({meta.total} total items)
-          </p>
-        </div>
-        <div>
-          <nav className="isolate inline-flex -space-x-px rounded-md shadow-xs" aria-label="Pagination">
-            <button
-              onClick={() => handlePageChange(meta.page - 1)}
-              disabled={!meta.hasPreviousPage}
-              className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-40"
-            >
-              <span className="sr-only">Previous</span>
-              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-            </button>
-            <span className="relative inline-flex items-center px-4 py-2 text-xs font-semibold text-gray-700 ring-1 ring-inset ring-gray-300">
-              {meta.page} / {meta.totalPages}
-            </span>
-            <button
-              onClick={() => handlePageChange(meta.page + 1)}
-              disabled={!meta.hasNextPage}
-              className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-40"
-            >
-              <span className="sr-only">Next</span>
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </nav>
-        </div>
-      </div>
+      </nav>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth";
 import { getAuditLogs } from "@/services/audit.service";
+import { PageHeader } from "@/components/layout";
 import AuditLogsClient from "./AuditLogsClient";
 
 export const metadata: Metadata = {
@@ -44,14 +45,10 @@ export default async function AdminAuditLogsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">System Audit Log Viewer</h1>
-          <p className="text-xs text-gray-500 mt-1">
-            Read-only immutable trail of administrative operations, security changes, and system events.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Audit Logs"
+        description="Read-only trail of administrative operations, security changes, and system events."
+      />
 
       <AuditLogsClient
         initialData={logsData}

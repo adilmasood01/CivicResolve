@@ -24,7 +24,7 @@ interface StatusTransitionControlProps {
 export function StatusTransitionControl({
   complaintId,
   currentStatus,
-  userRole,
+  userRole: _userRole,
 }: StatusTransitionControlProps) {
   const allowedTargets = VALID_TRANSITIONS_MAP[currentStatus] || [];
   const [selectedStatus, setSelectedStatus] = useState<ComplaintStatus | "">(
@@ -35,6 +35,7 @@ export function StatusTransitionControl({
   const [isPending, startTransition] = useTransition();
   const [showModal, setShowModal] = useState(false);
 
+  // Avoid empty status-actions shell when no transitions are available
   if (allowedTargets.length === 0) {
     return null;
   }
@@ -67,10 +68,8 @@ export function StatusTransitionControl({
   };
 
   return (
-    <div className="space-y-3">
-      <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-        Status Actions
-      </h4>
+    <section className="mb-8 border-t border-border pt-6">
+      <h2 className="mb-3 text-sm font-semibold text-foreground">Status actions</h2>
       <div className="flex flex-wrap gap-2">
         {allowedTargets.map((status) => {
           const config = STATUS_CONFIG[status];
@@ -79,56 +78,57 @@ export function StatusTransitionControl({
               key={status}
               type="button"
               onClick={() => handleOpenModal(status)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-gray-300 hover:border-blue-500 hover:text-blue-600 text-gray-700 shadow-sm transition"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
             >
-              <span>Transition to {config?.label || status}</span>
+              Transition to {config?.label || status}
             </button>
           );
         })}
       </div>
 
       {showModal && selectedStatus && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-gray-900 text-lg">
-                Update Status to {STATUS_CONFIG[selectedStatus]?.label}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md space-y-4 rounded-lg border border-border bg-card p-5 shadow-lg">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-base font-semibold text-foreground">
+                Update status to {STATUS_CONFIG[selectedStatus]?.label}
               </h3>
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600 font-bold"
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Close"
               >
                 ✕
               </button>
             </div>
 
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+                <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>{error}</span>
               </div>
             )}
 
             <div className="space-y-2">
-              <label className="block text-xs font-medium text-gray-700">
-                Reason / Remarks (Optional)
+              <label className="block text-xs font-medium text-foreground">
+                Reason / remarks (optional)
               </label>
               <textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={3}
                 placeholder="Add context or notes for this status change..."
-                className="w-full text-sm rounded-lg border border-gray-300 p-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                className="w-full rounded-md border border-border bg-background p-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t">
+            <div className="flex justify-end gap-2 border-t border-border pt-3">
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
                 disabled={isPending}
-                className="px-4 py-2 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100"
+                className="rounded-md px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 Cancel
               </button>
@@ -136,17 +136,17 @@ export function StatusTransitionControl({
                 type="button"
                 onClick={handleConfirmTransition}
                 disabled={isPending}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {isPending ? (
                   <>
-                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                    <span>Updating...</span>
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                    Updating…
                   </>
                 ) : (
                   <>
-                    <CheckCircle className="h-3.5 w-3.5" />
-                    <span>Confirm Status Change</span>
+                    <CheckCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                    Confirm
                   </>
                 )}
               </button>
@@ -154,6 +154,6 @@ export function StatusTransitionControl({
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 }
