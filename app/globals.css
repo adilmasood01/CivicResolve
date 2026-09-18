@@ -295,6 +295,114 @@
   background: var(--cr-primary-dark);
 }
 
+/* ── Mobile nav ─────────────────────────────────────────── */
+
+/* Hide desktop-only elements on mobile */
+.landing-nav-desktop-only {
+  display: none;
+}
+
+/* Hamburger button — hidden on desktop, visible on mobile */
+.landing-nav-hamburger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--cr-border);
+  background: transparent;
+  color: var(--cr-text);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.landing-nav-hamburger:hover {
+  background: var(--cr-surface);
+}
+
+.landing-nav-hamburger-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Mobile drawer — closed by default (height animates open) */
+.landing-nav-mobile-drawer {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.2s ease;
+  border-top: 1px solid transparent;
+}
+
+.landing-nav-mobile-drawer--open {
+  max-height: 400px;
+  opacity: 1;
+  border-top-color: var(--cr-border);
+}
+
+.landing-nav-mobile-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem 0.5rem;
+}
+
+.landing-nav-mobile-link {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: oklch(0.35 0 0);
+  text-decoration: none;
+  padding: 0.5rem 0.25rem;
+  border-radius: 0.375rem;
+  transition: color 0.15s;
+}
+
+.landing-nav-mobile-link:hover {
+  color: var(--cr-primary);
+}
+
+.landing-nav-mobile-actions {
+  display: flex;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--cr-border);
+}
+
+.landing-nav-mobile-action-btn {
+  flex: 1;
+  justify-content: center;
+}
+
+/* ── Desktop breakpoint (≥ 640 px) ─────────────────────── */
+@media (min-width: 640px) {
+  /* Show desktop nav & action buttons */
+  .landing-nav-links {
+    display: flex;
+  }
+
+  .landing-nav-desktop-only {
+    display: inline-flex;
+  }
+
+  /* Hide hamburger & mobile drawer entirely on desktop */
+  .landing-nav-hamburger {
+    display: none;
+  }
+
+  .landing-nav-mobile-drawer {
+    display: none;
+  }
+}
+
+/* Hide desktop nav on mobile */
+@media (max-width: 639px) {
+  .landing-nav-links {
+    display: none;
+  }
+}
+
 .landing-skip {
   position: absolute;
   left: 1rem;

@@ -19,7 +19,7 @@ export default function PublicHeader({ currentPath }: PublicHeaderProps) {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="landing-nav">
+    <header className={`landing-nav${open ? " landing-nav--open" : ""}`}>
       <div className="landing-nav-inner">
         <Link href="/" className="landing-brand">
           <Image
@@ -33,7 +33,8 @@ export default function PublicHeader({ currentPath }: PublicHeaderProps) {
           <span className="landing-brand-name">CivicResolve</span>
         </Link>
 
-        <nav className="landing-nav-links hidden sm:flex" aria-label="Public">
+        {/* Desktop nav */}
+        <nav className="landing-nav-links" aria-label="Public">
           {NAV_LINKS.map(({ href, label }) => (
             <Link
               key={href}
@@ -50,51 +51,61 @@ export default function PublicHeader({ currentPath }: PublicHeaderProps) {
         </nav>
 
         <div className="landing-nav-actions">
-          <Link href="/login" className="landing-nav-link-outline hidden sm:inline-flex">
+          <Link href="/login" className="landing-nav-link-outline landing-nav-desktop-only">
             Sign in
           </Link>
-          <Link href="/register" className="landing-nav-link-primary hidden sm:inline-flex">
+          <Link href="/register" className="landing-nav-link-primary landing-nav-desktop-only">
             Get started
           </Link>
+
+          {/* Hamburger — mobile only */}
           <button
             type="button"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--cr-border)] text-[var(--cr-text)] sm:hidden"
+            className="landing-nav-hamburger"
             aria-label={open ? "Close menu" : "Open menu"}
+            aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
           >
-            {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            {open ? <X className="landing-nav-hamburger-icon" /> : <Menu className="landing-nav-hamburger-icon" />}
           </button>
         </div>
       </div>
 
-      {open && (
-        <div className="border-t border-[var(--cr-border)] px-4 py-3 sm:hidden">
-          <nav className="flex flex-col gap-1" aria-label="Public mobile">
-            {NAV_LINKS.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className={
-                  currentPath === href
-                    ? "landing-nav-link landing-nav-link-active py-2"
-                    : "landing-nav-link py-2"
-                }
-                onClick={() => setOpen(false)}
-              >
-                {label}
-              </Link>
-            ))}
-            <div className="mt-2 flex gap-2 border-t border-[var(--cr-border)] pt-3">
-              <Link href="/login" className="landing-nav-link-outline flex-1 justify-center">
-                Sign in
-              </Link>
-              <Link href="/register" className="landing-nav-link-primary flex-1 justify-center">
-                Get started
-              </Link>
-            </div>
-          </nav>
+      {/* Mobile drawer */}
+      <div className={`landing-nav-mobile-drawer${open ? " landing-nav-mobile-drawer--open" : ""}`} aria-hidden={!open}>
+        <nav className="landing-nav-mobile-links" aria-label="Public mobile">
+          {NAV_LINKS.map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className={
+                currentPath === href
+                  ? "landing-nav-mobile-link landing-nav-link-active"
+                  : "landing-nav-mobile-link"
+              }
+              onClick={() => setOpen(false)}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+        <div className="landing-nav-mobile-actions">
+          <Link
+            href="/login"
+            className="landing-nav-link-outline landing-nav-mobile-action-btn"
+            onClick={() => setOpen(false)}
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/register"
+            className="landing-nav-link-primary landing-nav-mobile-action-btn"
+            onClick={() => setOpen(false)}
+          >
+            Get started
+          </Link>
         </div>
-      )}
+      </div>
     </header>
   );
 }
