@@ -1,7 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { can } from "@/lib/permissions";
 import { getStorageProvider } from "@/lib/storage";
-import { validateAttachmentFile, sanitizeFileName } from "@/lib/attachments";
+import {
+  validateAttachmentFile,
+  sanitizeFileName,
+  attachmentVisibilityFilterForRole,
+  filterAttachmentsVisibleToRole,
+} from "@/lib/attachments";
 import { SAFE_USER_SELECT } from "@/services/complaint.service";
 import type { SessionUser } from "@/types";
 import { AttachmentVisibility } from "@prisma/client";
@@ -137,13 +142,11 @@ export async function getComplaintAttachments(
     throw new Error("Forbidden: You cannot access attachments for this complaint.");
   }
 
-  // Filter out internal attachments for Citizens
-  const isCitizen = user.role === "CITIZEN";
-  const whereCondition: any = { complaintId };
-
-  if (isCitizen) {
-    whereCondition.visibility = AttachmentVisibility.PUBLIC;
-  }
+  const visibilityFilter = attachmentVisibilityFilterForRole(user.role);
+  const whereCondition = {
+    complaintId,
+    ...(visibilityFilter ?? {}),
+  };
 
   const attachments = await prisma.complaintAttachment.findMany({
     where: whereCondition,
@@ -153,7 +156,8 @@ export async function getComplaintAttachments(
     },
   });
 
-  return attachments;
+  // Defense-in-depth: never return INTERNAL metadata to citizens
+  return filterAttachmentsVisibleToRole(attachments, user.role);
 }
 
 export async function getAttachmentForDownload(

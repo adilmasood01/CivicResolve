@@ -223,6 +223,26 @@ export function canTransition(
   return checkResourcePermission(user, "complaint:update-status", complaint);
 }
 
+/**
+ * UI helper: status targets permitted for a role at the current status.
+ * Does NOT apply ownership/department scoping — server `canTransition` remains
+ * the security boundary. Use only to avoid showing actions the role can never take.
+ */
+export function getAllowedTransitionsForRole(
+  role: Role,
+  fromStatus: ComplaintStatus
+): ComplaintStatus[] {
+  const validTargets = VALID_TRANSITIONS[fromStatus] ?? [];
+  if (role === "ADMIN") return [...validTargets];
+
+  return validTargets.filter((toStatus) => {
+    const key =
+      `${fromStatus}->${toStatus}` as `${ComplaintStatus}->${ComplaintStatus}`;
+    const allowedRoles = TRANSITION_ROLES[key];
+    return allowedRoles?.includes(role) ?? false;
+  });
+}
+
 // ─────────────────────────────────────────────────────────────
 // INTERNAL HELPERS
 // ─────────────────────────────────────────────────────────────

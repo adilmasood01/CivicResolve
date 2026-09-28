@@ -16,6 +16,10 @@ import NextAuth from "next-auth";
 import { authConfig } from "@/auth.config";
 import { NextResponse } from "next/server";
 import type { Role } from "@prisma/client";
+import {
+  isAuthorizedForRouteRoles,
+  isKnownRole,
+} from "@/lib/route-access";
 
 const { auth } = NextAuth(authConfig);
 
@@ -43,7 +47,7 @@ const PROTECTED_ROUTES: Array<{
 // Guest-only routes: authenticated users should be redirected away
 const GUEST_ONLY_ROUTES = /^\/(login|register)(\/|$)/;
 
-function getDashboardForRole(role: Role): string {
+function getDashboardForRole(role: Role | undefined): string {
   switch (role) {
     case "ADMIN":
       return "/admin/dashboard";
@@ -65,7 +69,9 @@ export default auth(function middleware(req) {
 
   // Redirect authenticated users away from guest-only pages
   if (GUEST_ONLY_ROUTES.test(pathname) && session?.user) {
-    const destination = getDashboardForRole(userRole ?? "CITIZEN");
+    const destination = getDashboardForRole(
+      isKnownRole(userRole) ? userRole : undefined
+    );
     return NextResponse.redirect(new URL(destination, req.url));
   }
 
@@ -80,8 +86,12 @@ export default auth(function middleware(req) {
       return NextResponse.redirect(loginUrl);
     }
 
-    // Role check (empty array = any authenticated role)
-    if (route.roles.length > 0 && userRole && !route.roles.includes(userRole)) {
+    // Role-restricted routes: missing/unknown/unauthorized role → forbidden
+    // (empty roles array = any authenticated user)
+    if (
+      route.roles.length > 0 &&
+      !isAuthorizedForRouteRoles(userRole, route.roles)
+    ) {
       return NextResponse.redirect(new URL("/forbidden", req.url));
     }
 

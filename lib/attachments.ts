@@ -5,6 +5,8 @@
  * and magic byte signature verification to prevent spoofed file uploads.
  */
 
+import { AttachmentVisibility, type Role } from "@prisma/client";
+
 export const ALLOWED_MIME_TYPES = [
   "image/jpeg",
   "image/png",
@@ -115,4 +117,30 @@ export function sanitizeFileName(fileName: string): string {
   // Keep alphanumeric, dots, dashes, underscores, spaces
   const sanitized = basename.replace(/[^a-zA-Z0-9._\- ]/g, "_");
   return sanitized.trim().slice(0, 150) || "attachment";
+}
+
+/**
+ * Prisma `where` clause for attachment lists by viewer role.
+ * Citizens must never receive INTERNAL attachment rows (metadata included).
+ * Staff / admin: no visibility filter (full set).
+ */
+export function attachmentVisibilityFilterForRole(
+  role: Role
+): { visibility: AttachmentVisibility } | undefined {
+  if (role === "CITIZEN") {
+    return { visibility: AttachmentVisibility.PUBLIC };
+  }
+  return undefined;
+}
+
+/**
+ * Post-query filter matching getComplaintAttachments citizen rules.
+ * Ensures INTERNAL attachment metadata is never present in citizen DTOs.
+ */
+export function filterAttachmentsVisibleToRole<
+  T extends { visibility: AttachmentVisibility },
+>(attachments: T[], role: Role): T[] {
+  const visibilityFilter = attachmentVisibilityFilterForRole(role);
+  if (!visibilityFilter) return attachments;
+  return attachments.filter((a) => a.visibility === visibilityFilter.visibility);
 }

@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { can, canTransition } from "@/lib/permissions";
 import { calculateSLADeadline, getSLAInfo } from "@/lib/sla";
+import {
+  attachmentVisibilityFilterForRole,
+  filterAttachmentsVisibleToRole,
+} from "@/lib/attachments";
 import { generateComplaintNumber, getPaginationMeta } from "@/lib/utils";
 import {
   createComplaintSchema,
@@ -322,6 +326,8 @@ export async function getComplaintById(
   user: SessionUser,
   id: string
 ): Promise<ComplaintDetail | null> {
+  const attachmentVisibilityWhere = attachmentVisibilityFilterForRole(user.role);
+
   const complaint = await prisma.complaint.findUnique({
     where: { id },
     include: {
@@ -342,6 +348,10 @@ export async function getComplaintById(
         },
       },
       attachments: {
+        // Citizens: PUBLIC only at query time (no INTERNAL metadata in result set)
+        ...(attachmentVisibilityWhere
+          ? { where: attachmentVisibilityWhere }
+          : {}),
         orderBy: { createdAt: "desc" },
         include: {
           uploadedBy: { select: SAFE_USER_SELECT },
@@ -371,11 +381,17 @@ export async function getComplaintById(
 
   // IDOR & Data Leakage Protection:
   // If requester is a CITIZEN, filter out internal notes from the comments list
+  // and re-apply attachment visibility (same rule as getComplaintAttachments).
   if (user.role === "CITIZEN") {
     complaint.comments = complaint.comments.filter(
       (c) => c.type === CommentType.PUBLIC_COMMENT
     );
   }
+
+  complaint.attachments = filterAttachmentsVisibleToRole(
+    complaint.attachments,
+    user.role
+  );
 
   return complaint as unknown as ComplaintDetail;
 }

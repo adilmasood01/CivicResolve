@@ -166,14 +166,20 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Environment Variables
 
-See [`.env.example`](./.env.example) for the full list.
+See [`.env.example`](./.env.example) for the full list (placeholders only).
 
-| Variable | Description |
-|---|---|
-| `DATABASE_URL` | Pooled PostgreSQL connection string |
-| `DIRECT_URL` | Direct PostgreSQL connection (for migrations) |
-| `AUTH_SECRET` | Random secret for Auth.js session signing |
-| `AUTH_URL` | Canonical URL of the app |
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | Yes | Pooled PostgreSQL connection string |
+| `DIRECT_URL` | Yes | Direct PostgreSQL connection (for migrations) |
+| `AUTH_SECRET` | Yes | Random secret for Auth.js session signing |
+| `AUTH_URL` | Yes | Canonical URL of the app |
+| `CRON_SECRET` | Yes (for cron) | Shared secret for `POST /api/cron/sla` |
+| `STORAGE_PROVIDER` | No | Storage backend (`local` default; only `local` implemented) |
+| `ALLOW_PRODUCTION_SEED` | No | Must be `true` to allow seed when `NODE_ENV=production` |
+| `SEED_*_PASSWORD` | No | Optional overrides for demo seed passwords |
+
+Also optional: `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_APP_NAME`, and future storage/`MAX_FILE_*` keys documented in `.env.example`.
 
 ---
 

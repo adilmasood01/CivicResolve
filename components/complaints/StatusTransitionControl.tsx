@@ -1,19 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ComplaintStatus } from "@prisma/client";
+import { ComplaintStatus, type Role } from "@prisma/client";
 import { updateStatusAction } from "@/app/actions/complaints";
+import { getAllowedTransitionsForRole } from "@/lib/permissions";
 import { STATUS_CONFIG } from "./ComplaintStatusBadge";
 import { AlertCircle, CheckCircle, RefreshCw } from "lucide-react";
-
-const VALID_TRANSITIONS_MAP: Partial<Record<ComplaintStatus, ComplaintStatus[]>> = {
-  SUBMITTED: ["UNDER_REVIEW", "REJECTED"],
-  UNDER_REVIEW: ["ASSIGNED", "REJECTED"],
-  ASSIGNED: ["IN_PROGRESS", "UNDER_REVIEW"],
-  IN_PROGRESS: ["RESOLVED", "UNDER_REVIEW"],
-  RESOLVED: ["CLOSED", "REOPENED"],
-  REOPENED: ["UNDER_REVIEW", "ASSIGNED", "IN_PROGRESS"],
-};
 
 interface StatusTransitionControlProps {
   complaintId: string;
@@ -24,9 +16,13 @@ interface StatusTransitionControlProps {
 export function StatusTransitionControl({
   complaintId,
   currentStatus,
-  userRole: _userRole,
+  userRole,
 }: StatusTransitionControlProps) {
-  const allowedTargets = VALID_TRANSITIONS_MAP[currentStatus] || [];
+  // UI-only filter from the permission matrix; server canTransition remains authoritative
+  const allowedTargets = getAllowedTransitionsForRole(
+    userRole as Role,
+    currentStatus
+  );
   const [selectedStatus, setSelectedStatus] = useState<ComplaintStatus | "">(
     ""
   );

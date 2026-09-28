@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx tests/admin-auth-matrix.test.ts",
+    "test": "tsx tests/admin-auth-matrix.test.ts && tsx tests/phase6-analytics-reports.test.ts && tsx tests/audit-remediation.test.ts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
