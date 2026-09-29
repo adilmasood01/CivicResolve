@@ -110,20 +110,29 @@ export class SupabaseStorageProvider implements StorageProvider {
   private bucketChecked = false;
 
   constructor() {
-    const url =
+    const rawUrl =
       process.env.NEXT_PUBLIC_SUPABASE_URL ||
       process.env.SUPABASE_URL;
 
-    const key =
+    const rawKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY ||
       process.env.SUPABASE_ANON_KEY ||
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (!url || !key) {
+    if (!rawUrl || !rawKey) {
       throw new Error(
         "Supabase Storage requires SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY) to be set."
       );
     }
+
+    // Clean URL: strip quotes, trailing slashes, and accidental /rest/v1 or /storage/v1 subpaths
+    let url = rawUrl.trim().replace(/^["']|["']$/g, "");
+    url = url.replace(/\/(rest|storage)(\/v\d+)?\/?$/i, "").replace(/\/+$/, "");
+    if (!/^https?:\/\//i.test(url)) {
+      url = `https://${url}`;
+    }
+
+    const key = rawKey.trim().replace(/^["']|["']$/g, "");
 
     this.client = createClient(url, key, {
       auth: {
@@ -132,7 +141,10 @@ export class SupabaseStorageProvider implements StorageProvider {
       },
     });
 
-    this.bucket = process.env.STORAGE_BUCKET || "attachments";
+    this.bucket = (process.env.STORAGE_BUCKET || "attachments")
+      .trim()
+      .replace(/^["']|["']$/g, "")
+      .replace(/^\/+|\/+$/g, "");
   }
 
   private sanitizeStorageKey(storageKey: string): string {
