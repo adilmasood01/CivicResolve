@@ -65,7 +65,23 @@ function LoginForm() {
         const sessionRes = await fetch("/api/auth/session");
         const session = await sessionRes.json();
         const role = session?.user?.role ?? "CITIZEN";
-        const destination = callbackUrl ?? getDashboardPath(role);
+        
+        let safeCallback: string | null = null;
+        if (callbackUrl) {
+          const trimmed = callbackUrl.trim();
+          if (trimmed.startsWith("/") && !trimmed.startsWith("//")) {
+            safeCallback = trimmed;
+          } else {
+            try {
+              const parsed = new URL(trimmed);
+              safeCallback = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+            } catch {
+              safeCallback = null;
+            }
+          }
+        }
+
+        const destination = safeCallback ?? getDashboardPath(role);
         router.push(destination);
         router.refresh();
       } catch {
