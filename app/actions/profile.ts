@@ -90,7 +90,10 @@ export async function uploadAvatarAction(
     console.error("Avatar upload failed:", error);
     return {
       success: false,
-      error: "Failed to upload avatar. Please try again.",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to upload avatar. Please try again.",
     };
   }
 }

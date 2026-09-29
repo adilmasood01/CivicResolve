@@ -30,7 +30,14 @@ export function ProfileAvatarUploader({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    const ALLOWED_MIMES = [
+      "image/jpeg",
+      "image/jpg",
+      "image/pjpeg",
+      "image/png",
+      "image/webp",
+    ];
+    if (!ALLOWED_MIMES.includes(file.type.toLowerCase().trim())) {
       setError("Please select a JPEG, PNG, or WebP image.");
       return;
     }
