@@ -23,6 +23,13 @@ export const metadata: Metadata = {
   keywords: ["government", "complaints", "public service", "civic"],
   authors: [{ name: "CivicResolve" }],
   robots: { index: false, follow: false }, // not indexable (demo app)
+  icons: {
+    icon: [
+      { url: "/CivicResolve.jpg", type: "image/jpeg" },
+    ],
+    shortcut: "/CivicResolve.jpg",
+    apple: "/CivicResolve.jpg",
+  },
 };
 
 export default function RootLayout({
