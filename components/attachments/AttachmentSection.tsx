@@ -61,14 +61,21 @@ export function AttachmentSection({
     setSuccessMsg(null);
 
     const MAX_SIZE = 10 * 1024 * 1024;
-    const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+    const ALLOWED_TYPES = [
+      "image/jpeg",
+      "image/jpg",
+      "image/pjpeg",
+      "image/png",
+      "image/webp",
+      "application/pdf",
+    ];
 
     if (file.size > MAX_SIZE) {
       setErrorMsg("File exceeds the 10 MB maximum size limit.");
       return;
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    if (!ALLOWED_TYPES.includes(file.type.toLowerCase().trim())) {
       setErrorMsg("Unsupported file type. Please upload a JPEG, PNG, WEBP, or PDF file.");
       return;
     }

@@ -19,6 +19,17 @@ export type AllowedMimeType = typeof ALLOWED_MIME_TYPES[number];
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 /**
+ * Normalizes common MIME type variants (e.g. image/jpg -> image/jpeg)
+ */
+export function normalizeMimeType(mime: string): string {
+  const trimmed = mime.toLowerCase().trim();
+  if (trimmed === "image/jpg" || trimmed === "image/pjpeg") {
+    return "image/jpeg";
+  }
+  return trimmed;
+}
+
+/**
  * Validates file MIME type, size limit, and header magic bytes.
  */
 export function validateAttachmentFile(
@@ -39,7 +50,7 @@ export function validateAttachmentFile(
   }
 
   // 2. MIME type check
-  const normalizedMime = declaredMimeType.toLowerCase().trim();
+  const normalizedMime = normalizeMimeType(declaredMimeType);
   if (!ALLOWED_MIME_TYPES.includes(normalizedMime as AllowedMimeType)) {
     return {
       isValid: false,

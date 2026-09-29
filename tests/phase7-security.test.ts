@@ -117,6 +117,10 @@ async function run() {
   const pdfAsPng = validateAttachmentFile(pdfMagic, "x.png", "image/png");
   assert(!pdfAsPng.isValid, "12. PDF bytes with PNG MIME rejected");
 
+  const jpegMagic = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+  const jpgNormalized = validateAttachmentFile(jpegMagic, "photo.jpg", "image/jpg");
+  assert(jpgNormalized.isValid, "12b. image/jpg normalized to image/jpeg and accepted");
+
   // ── Storage key independence + traversal on read ────────────
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "civic-storage-"));
   const storage = new LocalStorageProvider(tmp);
