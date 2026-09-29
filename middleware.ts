@@ -67,8 +67,15 @@ export default auth(function middleware(req) {
   // Access role via type assertion — populated by the jwt callback in auth.ts
   const userRole = (session?.user as { role?: Role } | undefined)?.role;
 
+  // HTML redirects break the Server Actions protocol ("unexpected response").
+  // Let actions run; they enforce auth themselves and return structured results.
+  const isServerAction = req.method === "POST" && Boolean(req.headers.get("next-action"));
+
   // Redirect authenticated users away from guest-only pages
   if (GUEST_ONLY_ROUTES.test(pathname) && session?.user) {
+    if (isServerAction) {
+      return NextResponse.next();
+    }
     const destination = getDashboardForRole(
       isKnownRole(userRole) ? userRole : undefined
     );
@@ -81,6 +88,9 @@ export default auth(function middleware(req) {
 
     // Not authenticated → redirect to login with callbackUrl
     if (!session?.user) {
+      if (isServerAction) {
+        return NextResponse.next();
+      }
       const loginUrl = new URL("/login", req.url);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);
@@ -92,6 +102,9 @@ export default auth(function middleware(req) {
       route.roles.length > 0 &&
       !isAuthorizedForRouteRoles(userRole, route.roles)
     ) {
+      if (isServerAction) {
+        return NextResponse.next();
+      }
       return NextResponse.redirect(new URL("/forbidden", req.url));
     }
 

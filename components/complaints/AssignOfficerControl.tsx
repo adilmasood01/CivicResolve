@@ -59,7 +59,10 @@ export function AssignOfficerControl({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="text-xs font-medium text-muted-foreground">
+        <label
+          htmlFor="assigned-officer"
+          className="text-xs font-medium text-muted-foreground"
+        >
           Assigned officer
         </label>
         {isPending && (
@@ -81,6 +84,7 @@ export function AssignOfficerControl({
         <p className="text-xs text-muted-foreground">Loading officers…</p>
       ) : (
         <select
+          id="assigned-officer"
           value={selectedId}
           onChange={(e) => handleAssign(e.target.value)}
           disabled={isPending}

@@ -10,7 +10,7 @@ import {
 import { assignOfficer } from "@/services/assignment.service";
 import type { ApiResponse } from "@/types";
 import type { CommentType, ComplaintStatus } from "@prisma/client";
-import { getErrorMessage } from "@/lib/utils";
+import { getClientSafeErrorMessage } from "@/lib/utils";
 
 /**
  * Server Action: Submit a new citizen complaint
@@ -39,7 +39,7 @@ export async function createComplaintAction(
   } catch (error) {
     return {
       success: false,
-      error: getErrorMessage(error),
+      error: getClientSafeErrorMessage(error),
     };
   }
 }
@@ -77,7 +77,7 @@ export async function updateStatusAction(
   } catch (error) {
     return {
       success: false,
-      error: getErrorMessage(error),
+      error: getClientSafeErrorMessage(error),
     };
   }
 }
@@ -110,7 +110,7 @@ export async function assignOfficerAction(
   } catch (error) {
     return {
       success: false,
-      error: getErrorMessage(error),
+      error: getClientSafeErrorMessage(error),
     };
   }
 }
@@ -142,7 +142,7 @@ export async function addCommentAction(
   } catch (error) {
     return {
       success: false,
-      error: getErrorMessage(error),
+      error: getClientSafeErrorMessage(error),
     };
   }
 }

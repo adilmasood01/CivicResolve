@@ -58,6 +58,7 @@ export class LocalStorageProvider implements StorageProvider {
 
     const ext = path.extname(originalFileName).toLowerCase();
     const safeExt = /^\.[a-z0-9]+$/i.test(ext) ? ext : ".bin";
+    // Storage key is never derived from user path segments — UUID only
     const storageKey = `${crypto.randomUUID()}-${Date.now()}${safeExt}`;
     const destinationPath = path.join(this.uploadDir, storageKey);
 
@@ -74,7 +75,7 @@ export class LocalStorageProvider implements StorageProvider {
 
     try {
       return await fs.readFile(filePath);
-    } catch (err) {
+    } catch {
       throw new Error("File not found or unreadable in storage");
     }
   }
@@ -94,12 +95,36 @@ export class LocalStorageProvider implements StorageProvider {
 /**
  * Returns the configured storage provider instance.
  * Switchable to S3 / Supabase Storage via STORAGE_PROVIDER env variable.
+ *
+ * Production requires an explicit STORAGE_PROVIDER. Local filesystem storage
+ * is allowed in production only when STORAGE_PROVIDER=local is set deliberately.
  */
 export function getStorageProvider(): StorageProvider {
-  const provider = process.env.STORAGE_PROVIDER || "local";
-  switch (provider.toLowerCase()) {
+  const raw = process.env.STORAGE_PROVIDER;
+  const isProd = process.env.NODE_ENV === "production";
+
+  if (isProd && (raw === undefined || raw.trim() === "")) {
+    throw new Error(
+      "STORAGE_PROVIDER must be set explicitly in production (use \"local\" only for demos)"
+    );
+  }
+
+  const provider = (raw || "local").toLowerCase().trim();
+
+  switch (provider) {
     case "local":
-    default:
+      if (isProd) {
+        console.warn(
+          "[storage] Using local filesystem storage in production. Configure S3/Supabase for durable uploads."
+        );
+      }
       return new LocalStorageProvider();
+    case "s3":
+    case "supabase":
+      throw new Error(
+        `STORAGE_PROVIDER=${provider} is reserved but not implemented. Use local for now or add a provider adapter.`
+      );
+    default:
+      throw new Error(`Unsupported STORAGE_PROVIDER: ${provider}`);
   }
 }

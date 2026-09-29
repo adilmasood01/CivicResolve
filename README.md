@@ -25,7 +25,7 @@ After sign-in, each role lands on its dashboard (`/dashboard`, `/staff/dashboard
 - **Citizen portal** — Submit, track, and follow up on complaints
 - **Officer dashboard** — Assigned cases, notes, and evidence
 - **Department manager dashboard** — Workload, SLA, department analytics
-- **Admin panel** — Users, departments, categories, SLA rules, audit logs
+- **Admin panel** — `/admin/*` control center (users/roles, departments, categories, SLA, staff, analytics, audit); see [Admin Dashboard](#admin-dashboard)
 - **Complaint lifecycle** — Enforced state machine (SUBMITTED → RESOLVED → CLOSED)
 - **SLA monitoring** — Per-priority deadlines with ON_TRACK / DUE_SOON / BREACHED
 - **Audit trail** — Significant actions recorded immutably
@@ -79,6 +79,7 @@ schemas/              Zod schemas (shared by client and server)
 types/                Shared TypeScript types
 prisma/
 ├── schema.prisma     Database schema
+├── migrations/       Versioned SQL applied by `prisma migrate deploy`
 └── seed.ts           Local demo data
 ```
 
@@ -151,16 +152,19 @@ cd CivicResolve
 
 npm install
 
-cp .env.example .env.local
+cp .env.example .env
 # Set DATABASE_URL, DIRECT_URL, and AUTH_SECRET
+# Prisma CLI reads `.env` (not `.env.local`)
 
-npx prisma db push
+npx prisma migrate deploy
 npx prisma db seed
 
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+Schema changes go through Prisma Migrate (`prisma/migrations`). Do not use `prisma db push` for setup or shared environments.
 
 ---
 
@@ -202,29 +206,110 @@ Public tracker example: `CMP-2026-000001`.
 
 ---
 
+## Admin Dashboard
+
+Super-admin features live under **`/admin/*`**, gated to the `ADMIN` role. Department managers use `/manager/*`; officers use `/staff/*`.
+
+### How to open it
+
+1. Sign in as the seeded admin (`admin@civicresolve.gov` — password in the table above).
+2. You are redirected to **`/admin/dashboard`**.
+3. Use the **Admin** sub-nav (not the top header alone) for the full menu: Users, Departments, Categories, Staff, SLA, Analytics, Audit.
+
+The top nav only shows **Overview** for admins; the rest is in `components/admin/AdminSubNav.tsx`.
+
+### Access control
+
+- Middleware: `/admin/*` → ADMIN only
+- Layout gate: `app/admin/layout.tsx` via `requireRole("ADMIN")`
+- Permissions: `lib/permissions.ts` — `user:manage`, `department:manage`, `category:manage`, `sla:manage`, `audit:view`, `analytics:view-system`
+
+### What admins can do
+
+| Area | Route | Capability |
+|---|---|---|
+| Overview | `/admin/dashboard` | System stats |
+| Users / access | `/admin/users` | Change role, department, `isActive` |
+| Staff | `/admin/staff` | Staff overview |
+| Departments | `/admin/departments` | Create/update, assign manager |
+| Categories | `/admin/categories` | Create/update routing categories |
+| SLA | `/admin/sla` | Priority resolution rules |
+| Analytics | `/admin/analytics/*` | System / dept / SLA / officers |
+| Audit | `/admin/audit-logs` | Read audit trail |
+
+Backend: `app/actions/admin.ts`, `app/api/admin/`, `services/admin.service.ts`, `services/user.service.ts`.
+
+Public registration always creates **CITIZEN**; elevating someone to officer/manager/admin is done from **Users**.
+
+### Known gaps
+
+- No admin create/invite user flow (promote/deactivate existing users only)
+- No dedicated `/admin/complaints` (admins use `/staff/complaints`)
+- No system settings / feature-flag / cron control UI
+- No password reset or impersonation
+
+---
+
 ## Deploying
 
-- Generate a unique `AUTH_SECRET` and never commit `.env.local`.
+- Generate a unique `AUTH_SECRET` and never commit `.env` / `.env.local`.
+- Set `CRON_SECRET` and schedule `POST /api/cron/sla` with `Authorization: Bearer <CRON_SECRET>` (fail-closed if unset).
+- Set `STORAGE_PROVIDER` explicitly in production (`local` only for demos; S3/Supabase adapters not implemented yet).
 - Do not seed a production database with the demo accounts above.
-- Route matching in middleware is not enough: API routes and server actions still authorize through `lib/permissions.ts`.
+- Apply schema with `npx prisma migrate deploy` (same command for local and production).
+- Route matching in middleware is not enough: API routes and server actions authorize through `lib/permissions.ts` and DB-backed `getCurrentUser()`.
+- Security model details: [SECURITY.md](./SECURITY.md)
 
 ---
 
 ## Database Commands
 
 ```bash
-# Push schema changes (dev — no migration files)
-npx prisma db push
+# Apply pending migrations (local + production)
+npm run db:migrate
+# equivalent: npx prisma migrate deploy
 
-# Create a migration (production)
-npx prisma migrate dev --name <description>
+# Create a new migration during development (writes SQL under prisma/migrations)
+npm run db:migrate:dev -- --name <description>
 
-# Reset and re-seed (local dev)
+# Seed demo data
+npm run db:seed
+
+# Reset DB from migrations and re-seed (local / disposable DBs only)
 npm run db:reset
 
 # Open Prisma Studio
-npx prisma studio
+npm run db:studio
 ```
+
+### Existing database already created with `db push`
+
+If the database already matches `prisma/schema.prisma` but has no migration history, baseline once instead of re-running CREATE statements:
+
+```bash
+npx prisma migrate resolve --applied 20260929000000_init
+```
+
+After that, use `migrate deploy` / `migrate dev` like any other Prisma project.
+
+---
+
+## Testing
+
+```bash
+# Unit / security / business-rule scripts (no DB required) — 75+ assertions
+npm test
+
+# Optional PostgreSQL integration (does not wipe DB; needs seed + RUN_INTEGRATION=1)
+set RUN_INTEGRATION=1
+npm run test:integration
+
+# Playwright E2E — critical role flows (needs migrate + seed; starts `npm run dev` if none is running)
+npx playwright install chromium   # first time only
+npm run test:e2e
+```
+
+E2E covers ~12 flows: citizen login / submit / view / comment / IDOR denial; officer login / view assigned / status change; manager login / assign officer; admin login / manage user. Uses the [demo accounts](#demo-accounts-local-only) above. Mutation tests reset seeded complaint status via Prisma so runs stay idempotent.
 
 ---
 

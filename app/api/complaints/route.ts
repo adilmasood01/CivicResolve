@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { createComplaint, getComplaints } from "@/services/complaint.service";
-import { getErrorMessage } from "@/lib/utils";
+import { getClientSafeErrorMessage } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
@@ -36,7 +36,7 @@ export async function GET(req: Request) {
     const result = await getComplaints(user, filters);
     return NextResponse.json({ success: true, ...result });
   } catch (error) {
-    const message = getErrorMessage(error);
+    const message = getClientSafeErrorMessage(error);
     const status = message.toLowerCase().includes("forbidden") ? 403 : 400;
     return NextResponse.json(
       { success: false, error: message },
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     const complaint = await createComplaint(user, body);
     return NextResponse.json({ success: true, data: complaint }, { status: 201 });
   } catch (error) {
-    const message = getErrorMessage(error);
+    const message = getClientSafeErrorMessage(error);
     const status = message.toLowerCase().includes("forbidden") ? 403 : 400;
     return NextResponse.json(
       { success: false, error: message },

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { deleteComplaintAttachment } from "@/services/attachment.service";
-import { getErrorMessage } from "@/lib/utils";
+import { getClientSafeErrorMessage } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
@@ -23,7 +23,7 @@ export async function DELETE(
     const result = await deleteComplaintAttachment(user, attachmentId);
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
-    const message = getErrorMessage(error);
+    const message = getClientSafeErrorMessage(error);
     const status = message.toLowerCase().includes("forbidden") ? 403 : 400;
     return NextResponse.json({ success: false, error: message }, { status });
   }

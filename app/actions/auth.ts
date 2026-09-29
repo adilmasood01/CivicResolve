@@ -11,7 +11,6 @@ import { signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 
 // ─────────────────────────────────────────────────────────────
@@ -141,13 +140,38 @@ export async function loginAction(
   const { email, password } = parsed.data;
 
   try {
-    await signIn("credentials", {
+    const result = await signIn("credentials", {
       email,
       password,
       redirect: false,
     });
+
+    // Auth.js may return an error object when redirect: false
+    if (
+      result &&
+      typeof result === "object" &&
+      "error" in result &&
+      (result as { error?: string | null }).error
+    ) {
+      return {
+        success: false,
+        error: "Invalid email or password. Please try again.",
+      };
+    }
+
     return { success: true };
   } catch (error) {
+    // NEXT_REDIRECT must propagate for Next.js navigation to work
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "digest" in error &&
+      typeof (error as { digest?: unknown }).digest === "string" &&
+      (error as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+    ) {
+      throw error;
+    }
+
     if (error instanceof AuthError) {
       switch (error.type) {
         case "CredentialsSignin":
@@ -162,8 +186,11 @@ export async function loginAction(
           };
       }
     }
-    // Re-throw unexpected errors (e.g., redirect from next-auth)
-    throw error;
+
+    return {
+      success: false,
+      error: "An error occurred during sign in. Please try again.",
+    };
   }
 }
 
@@ -173,9 +200,8 @@ export async function loginAction(
 
 /**
  * Signs out the current user and redirects to the login page.
- * Clears the session cookie via Auth.js.
+ * Auth.js clears the session cookie, then Next.js redirects in the same response.
  */
-export async function logoutAction(): Promise<void> {
-  await signOut({ redirect: false });
-  redirect("/login");
+export async function logoutAction() {
+  await signOut({ redirectTo: "/login" });
 }

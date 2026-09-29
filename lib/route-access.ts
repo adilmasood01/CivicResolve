@@ -37,3 +37,21 @@ export function isAuthorizedForRouteRoles(
   if (!isKnownRole(userRole)) return false;
   return allowedRoles.includes(userRole);
 }
+
+/**
+ * Maps a User Role string to the corresponding dashboard path.
+ */
+export function getDashboardPath(role?: string | null): string {
+  switch (role) {
+    case "ADMIN":
+      return "/admin/dashboard";
+    case "DEPARTMENT_MANAGER":
+      return "/manager/dashboard";
+    case "OFFICER":
+      return "/staff/dashboard";
+    case "CITIZEN":
+    default:
+      return "/dashboard";
+  }
+}
+

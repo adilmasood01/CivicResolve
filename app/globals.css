@@ -256,8 +256,10 @@
 
 .landing-nav-actions {
   display: flex;
+  align-items: center;
   gap: 0.75rem;
 }
+
 
 .landing-nav-link-outline {
   display: inline-flex;

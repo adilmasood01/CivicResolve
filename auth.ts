@@ -19,7 +19,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // JWT strategy — required for Credentials provider and Edge middleware
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    // Shorter lifetime reduces stale JWT privilege window at the middleware layer.
+    // getCurrentUser() revalidates role/isActive against the DB for Node requests.
+    maxAge: 8 * 60 * 60, // 8 hours
+    updateAge: 30 * 60, // refresh session cookie every 30 minutes of activity
   },
 
   providers: [

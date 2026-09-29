@@ -91,83 +91,104 @@ export async function createComplaint(
   // 6. Calculate SLA deadline
   const slaDeadline = calculateSLADeadline(priority, slaRules);
 
-  // 7. Transaction: generate complaint number, create complaint, status history, audit log, notification
-  const result = await prisma.$transaction(async (tx) => {
-    // Generate unique complaint number based on total count + 1
-    const count = await tx.complaint.count();
-    let seq = count + 1;
-    let complaintNumber = generateComplaintNumber(seq);
+  // 7. Transaction: atomic complaint number + create complaint, status history, audit, notification
+  const result = await prisma.$transaction(
+    async (tx) => {
+      const year = new Date().getFullYear();
+      const yearPrefix = `CMP-${year}-%`;
 
-    // Collision fallback safety loop
-    let existing = await tx.complaint.findUnique({ where: { complaintNumber } });
-    while (existing) {
-      seq += 1;
-      complaintNumber = generateComplaintNumber(seq);
-      existing = await tx.complaint.findUnique({ where: { complaintNumber } });
-    }
+      // Bootstrap sequence once per year from existing/seeded max (avoid races with count()+1)
+      const existingSeq = await tx.complaintNumberSequence.findUnique({
+        where: { year },
+      });
+      if (!existingSeq) {
+        const maxRows = await tx.$queryRaw<Array<{ max_seq: number | null }>>`
+          SELECT COALESCE(MAX(CAST(RIGHT(complaint_number, 6) AS INTEGER)), 0) AS max_seq
+          FROM complaints
+          WHERE complaint_number LIKE ${yearPrefix}
+        `;
+        const maxSeq = Number(maxRows[0]?.max_seq ?? 0);
+        try {
+          await tx.complaintNumberSequence.create({
+            data: { year, lastValue: maxSeq },
+          });
+        } catch {
+          // Concurrent bootstrap — another transaction created the row
+        }
+      }
 
-    // Create Complaint record
-    const complaint = await tx.complaint.create({
-      data: {
-        complaintNumber,
-        title: validated.title,
-        description: validated.description,
-        priority,
-        status: ComplaintStatus.SUBMITTED,
-        location: validated.location,
-        latitude: validated.latitude ?? null,
-        longitude: validated.longitude ?? null,
-        slaDeadline,
-        categoryId: category.id,
-        departmentId,
-        citizenId: user.id,
-      },
-      include: {
-        category: { select: { id: true, name: true } },
-        department: { select: { id: true, name: true } },
-      },
-    });
+      const updated = await tx.complaintNumberSequence.update({
+        where: { year },
+        data: { lastValue: { increment: 1 } },
+        select: { lastValue: true },
+      });
+      const seq = updated.lastValue;
+      const complaintNumber = generateComplaintNumber(seq, year);
 
-    // Create initial status history entry
-    await tx.complaintStatusHistory.create({
-      data: {
-        complaintId: complaint.id,
-        fromStatus: null,
-        toStatus: ComplaintStatus.SUBMITTED,
-        changedById: user.id,
-        reason: "Initial complaint submission by citizen",
-      },
-    });
-
-    // Create audit log
-    await tx.auditLog.create({
-      data: {
-        actorId: user.id,
-        action: "COMPLAINT_SUBMITTED",
-        entity: "Complaint",
-        entityId: complaint.id,
-        metadata: {
-          complaintNumber: complaint.complaintNumber,
+      // Create Complaint record
+      const complaint = await tx.complaint.create({
+        data: {
+          complaintNumber,
+          title: validated.title,
+          description: validated.description,
+          priority,
+          status: ComplaintStatus.SUBMITTED,
+          location: validated.location,
+          latitude: validated.latitude ?? null,
+          longitude: validated.longitude ?? null,
+          slaDeadline,
           categoryId: category.id,
           departmentId,
-          priority,
+          citizenId: user.id,
         },
-      },
-    });
+        include: {
+          category: { select: { id: true, name: true } },
+          department: { select: { id: true, name: true } },
+        },
+      });
 
-    // Create in-app notification for the citizen
-    await tx.notification.create({
-      data: {
-        userId: user.id,
-        type: "COMPLAINT_SUBMITTED",
-        title: "Complaint Submitted Successfully",
-        message: `Your complaint ${complaint.complaintNumber} (${complaint.title}) has been submitted and routed to ${category.department?.name}.`,
-        complaintId: complaint.id,
-      },
-    });
+      // Create initial status history entry
+      await tx.complaintStatusHistory.create({
+        data: {
+          complaintId: complaint.id,
+          fromStatus: null,
+          toStatus: ComplaintStatus.SUBMITTED,
+          changedById: user.id,
+          reason: "Initial complaint submission by citizen",
+        },
+      });
 
-    return complaint;
-  });
+      // Create audit log
+      await tx.auditLog.create({
+        data: {
+          actorId: user.id,
+          action: "COMPLAINT_SUBMITTED",
+          entity: "Complaint",
+          entityId: complaint.id,
+          metadata: {
+            complaintNumber: complaint.complaintNumber,
+            categoryId: category.id,
+            departmentId,
+            priority,
+          },
+        },
+      });
+
+      // Create in-app notification for the citizen
+      await tx.notification.create({
+        data: {
+          userId: user.id,
+          type: "COMPLAINT_SUBMITTED",
+          title: "Complaint Submitted Successfully",
+          message: `Your complaint ${complaint.complaintNumber} (${complaint.title}) has been submitted and routed to ${category.department?.name}.`,
+          complaintId: complaint.id,
+        },
+      });
+
+      return complaint;
+    },
+    { timeout: 20000 }
+  );
 
   return result;
 }
@@ -273,48 +294,91 @@ export async function getComplaints(
     };
   }
 
-  // Count total matching complaints
-  const total = await prisma.complaint.count({ where });
-
   // Calculate pagination bounds
   const page = filters.page;
   const pageSize = filters.pageSize;
   const skip = (page - 1) * pageSize;
 
-  // Execute database query
+  // Fetch SLA rules for computing live SLA status
+  const slaRules = await prisma.sLARule.findMany({ where: { isActive: true } });
+
+  const complaintListInclude = {
+    category: { select: { id: true, name: true } },
+    department: { select: { id: true, name: true, code: true } },
+    citizen: { select: { id: true, name: true, email: true } },
+    assignedOfficer: { select: { id: true, name: true, email: true } },
+  } as const;
+
+  // slaStatus is derived (not a DB column). When requested, resolve matching IDs
+  // first so pagination totals and pages stay correct.
+  if (filters.slaStatus) {
+    const SLA_FILTER_SCAN_CAP = 5000;
+    const candidates = await prisma.complaint.findMany({
+      where,
+      select: {
+        id: true,
+        slaDeadline: true,
+        status: true,
+        priority: true,
+        createdAt: true,
+      },
+      orderBy: { [filters.sortBy]: filters.sortOrder },
+      take: SLA_FILTER_SCAN_CAP,
+    });
+
+    const matchingIds = candidates
+      .filter(
+        (c) =>
+          getSLAInfo(c.slaDeadline, c.status, slaRules, c.priority, c.createdAt)
+            .status === filters.slaStatus
+      )
+      .map((c) => c.id);
+
+    const total = matchingIds.length;
+    const pageIds = matchingIds.slice(skip, skip + pageSize);
+
+    const rawComplaints =
+      pageIds.length === 0
+        ? []
+        : await prisma.complaint.findMany({
+            where: { id: { in: pageIds } },
+            include: complaintListInclude,
+          });
+
+    // Preserve SLA-filter order (findMany does not guarantee IN-list order)
+    const byId = new Map(rawComplaints.map((c) => [c.id, c]));
+    const ordered = pageIds
+      .map((id) => byId.get(id))
+      .filter((c): c is NonNullable<typeof c> => Boolean(c));
+
+    const data = ordered.map((c) => ({
+      ...c,
+      slaInfo: getSLAInfo(c.slaDeadline, c.status, slaRules, c.priority, c.createdAt),
+    }));
+
+    return {
+      data,
+      meta: getPaginationMeta(total, page, pageSize),
+    };
+  }
+
+  const total = await prisma.complaint.count({ where });
+
   const rawComplaints = await prisma.complaint.findMany({
     where,
     skip,
     take: pageSize,
     orderBy: { [filters.sortBy]: filters.sortOrder },
-    include: {
-      category: { select: { id: true, name: true } },
-      department: { select: { id: true, name: true, code: true } },
-      citizen: { select: { id: true, name: true, email: true } },
-      assignedOfficer: { select: { id: true, name: true, email: true } },
-    },
+    include: complaintListInclude,
   });
 
-  // Fetch SLA rules for computing live SLA status
-  const slaRules = await prisma.sLARule.findMany({ where: { isActive: true } });
-
-  // Compute live SLA info for each complaint
-  const data = rawComplaints.map((c) => {
-    const slaInfo = getSLAInfo(c.slaDeadline, c.status, slaRules, c.priority, c.createdAt);
-    return {
-      ...c,
-      slaInfo,
-    };
-  });
-
-  // Optional secondary filter for slaStatus if passed
-  let filteredData = data;
-  if (filters.slaStatus) {
-    filteredData = data.filter((c) => c.slaInfo.status === filters.slaStatus);
-  }
+  const data = rawComplaints.map((c) => ({
+    ...c,
+    slaInfo: getSLAInfo(c.slaDeadline, c.status, slaRules, c.priority, c.createdAt),
+  }));
 
   return {
-    data: filteredData,
+    data,
     meta: getPaginationMeta(total, page, pageSize),
   };
 }

@@ -381,3 +381,11 @@ model ComplaintFilterPreset {
   @@map("complaint_filter_presets")
 }
 
+/// Per-year atomic sequence for CMP-{YEAR}-{NNNNNN} generation
+model ComplaintNumberSequence {
+  year      Int @id
+  lastValue Int @default(0) @map("last_value")
+
+  @@map("complaint_number_sequences")
+}
+

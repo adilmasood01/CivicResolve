@@ -1,9 +1,9 @@
 /**
  * CivicResolve — Landing Page
  *
- * Public-facing landing page. Authenticated users are redirected to
- * their role-appropriate dashboard by middleware.
+ * Public-facing landing page. Displays active user session if authenticated.
  */
+
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -24,6 +24,8 @@ import {
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import ProductPreview from "@/components/landing/ProductPreview";
+import { getCurrentUser } from "@/lib/auth";
+import { getDashboardPath } from "@/lib/route-access";
 
 export const metadata: Metadata = {
   title: "CivicResolve — Public Service Complaint Management",
@@ -130,13 +132,16 @@ const FAQS = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const user = await getCurrentUser();
+  const dashboardPath = user ? getDashboardPath(user.role) : "/dashboard";
+
   return (
     <div className="landing-layout">
       <a href="#main-content" className="landing-skip">
         Skip to content
       </a>
-      <PublicHeader currentPath="/" />
+      <PublicHeader currentPath="/" user={user} />
 
       <main id="main-content">
         <section className="landing-hero" aria-labelledby="hero-heading">
@@ -152,14 +157,18 @@ export default function HomePage() {
                 keeps a record anyone can look up by complaint number.
               </p>
               <div className="landing-hero-cta landing-hero-cta--start">
-                <Link href="/register" className="landing-cta-primary">
-                  Create a free account
+                <Link
+                  href={user ? dashboardPath : "/register"}
+                  className="landing-cta-primary"
+                >
+                  {user ? "Go to your dashboard" : "Create a free account"}
                   <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
                 <Link href="/track" className="landing-cta-secondary">
                   Track a complaint
                 </Link>
               </div>
+
               <p className="landing-hero-note">
                 No account needed to look up a case by number.
               </p>

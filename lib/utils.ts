@@ -98,10 +98,82 @@ export function formatFileSize(bytes: number): string {
 export const formatBytes = formatFileSize;
 
 // ── Error helpers ─────────────────────────────────────────────
+/**
+ * Internal / logging helper — may include implementation detail.
+ */
 export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
   return "An unexpected error occurred";
+}
+
+const CLIENT_SAFE_ERROR_MARKERS = [
+  "Forbidden",
+  "Authentication required",
+  "Unauthorized",
+  "Action prohibited",
+  "not found",
+  "Not found",
+  "Validation",
+  "Invalid",
+  "already exists",
+  "already in use",
+  "required",
+  "Unsupported file",
+  "File size",
+  "File format",
+  "Uploaded file",
+  "Path Traversal",
+  "notificationId",
+  "SLA cron is not configured",
+  "Category has no",
+  "inactive category",
+  "Passwords",
+  "An account with this email",
+] as const;
+
+/**
+ * Client-facing error message. Strips Prisma/SQL/path/stack leakage.
+ * Known business errors are passed through; everything else is generic.
+ */
+export function getClientSafeErrorMessage(error: unknown): string {
+  const message = getErrorMessage(error);
+
+  if (
+    /prisma|ECONN|ENOMEM|ENOENT|ETIMEDOUT|aggregate|invocation|\\\\|\/[A-Za-z]:\\/i.test(
+      message
+    )
+  ) {
+    console.error("[safe-error] suppressed internal error");
+    return "An unexpected error occurred";
+  }
+
+  if (CLIENT_SAFE_ERROR_MARKERS.some((m) => message.includes(m))) {
+    return message;
+  }
+
+  console.error("[safe-error] suppressed unexpected error");
+  return "An unexpected error occurred";
+}
+
+export function getClientErrorStatus(error: unknown): number {
+  const message = getErrorMessage(error);
+  if (message.includes("Authentication required") || message.includes("Unauthorized")) {
+    return 401;
+  }
+  if (message.includes("Forbidden") || message.includes("Action prohibited")) {
+    return 403;
+  }
+  if (message.toLowerCase().includes("not found")) {
+    return 404;
+  }
+  if (
+    CLIENT_SAFE_ERROR_MARKERS.some((m) => message.includes(m)) &&
+    !message.includes("Forbidden")
+  ) {
+    return 400;
+  }
+  return 500;
 }
 
 // ── Pagination helpers ────────────────────────────────────────

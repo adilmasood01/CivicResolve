@@ -4,7 +4,7 @@ import {
   uploadComplaintAttachment,
   getComplaintAttachments,
 } from "@/services/attachment.service";
-import { getErrorMessage } from "@/lib/utils";
+import { getClientSafeErrorMessage } from "@/lib/utils";
 import { AttachmentVisibility } from "@prisma/client";
 
 export const runtime = "nodejs";
@@ -27,7 +27,7 @@ export async function GET(
     const attachments = await getComplaintAttachments(user, id);
     return NextResponse.json({ success: true, data: attachments });
   } catch (error) {
-    const message = getErrorMessage(error);
+    const message = getClientSafeErrorMessage(error);
     const status = message.toLowerCase().includes("forbidden") ? 403 : 400;
     return NextResponse.json({ success: false, error: message }, { status });
   }
@@ -78,7 +78,7 @@ export async function POST(
 
     return NextResponse.json({ success: true, data: attachment }, { status: 201 });
   } catch (error) {
-    const message = getErrorMessage(error);
+    const message = getClientSafeErrorMessage(error);
     const status = message.toLowerCase().includes("forbidden") ? 403 : 400;
     return NextResponse.json({ success: false, error: message }, { status });
   }

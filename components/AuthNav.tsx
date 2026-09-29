@@ -4,10 +4,11 @@
  * CivicResolve — Authenticated Navigation Header
  */
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useFormStatus } from "react-dom";
 import {
   Bell,
   User,
@@ -81,6 +82,27 @@ function complaintHref(role: string, complaintId: string) {
   return `/staff/complaints/${complaintId}`;
 }
 
+function SignOutButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      id="nav-logout-btn"
+      type="submit"
+      className="auth-nav-dropdown-item auth-nav-logout"
+      role="menuitem"
+      disabled={pending}
+    >
+      {pending ? (
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+      ) : (
+        <LogOut className="h-4 w-4" aria-hidden="true" />
+      )}
+      <span>{pending ? "Signing out…" : "Sign out"}</span>
+    </button>
+  );
+}
+
 export default function AuthNav({ user, unreadCount: initialUnread = 0 }: AuthNavProps) {
   const pathname = usePathname();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -89,7 +111,6 @@ export default function AuthNav({ user, unreadCount: initialUnread = 0 }: AuthNa
   const [unreadCount, setUnreadCount] = useState<number>(initialUnread);
   const [recentNotifs, setRecentNotifs] = useState<any[]>([]);
   const [loadingNotifs, setLoadingNotifs] = useState(false);
-  const [isPending, startTransition] = useTransition();
 
   const fetchNotifications = async () => {
     try {
@@ -116,12 +137,6 @@ export default function AuthNav({ user, unreadCount: initialUnread = 0 }: AuthNa
     setUserMenuOpen(false);
     setNotifMenuOpen(false);
   }, [pathname]);
-
-  const handleLogout = () => {
-    startTransition(async () => {
-      await logoutAction();
-    });
-  };
 
   const handleMarkAllRead = async () => {
     try {
@@ -297,8 +312,18 @@ export default function AuthNav({ user, unreadCount: initialUnread = 0 }: AuthNa
               aria-haspopup="true"
               aria-label="User menu"
             >
-              <div className="auth-nav-avatar" aria-hidden="true">
-                {user.name ? user.name.charAt(0).toUpperCase() : <User className="h-3.5 w-3.5" />}
+              <div className="auth-nav-avatar overflow-hidden" aria-hidden="true">
+                {user.image ? (
+                  <img
+                    src={user.image}
+                    alt={user.name ?? "Avatar"}
+                    className="h-full w-full object-cover"
+                  />
+                ) : user.name ? (
+                  user.name.charAt(0).toUpperCase()
+                ) : (
+                  <User className="h-3.5 w-3.5" />
+                )}
               </div>
               <div className="auth-nav-user-info">
                 <span className="auth-nav-user-name">{user.name ?? user.email}</span>
@@ -316,18 +341,37 @@ export default function AuthNav({ user, unreadCount: initialUnread = 0 }: AuthNa
                 role="menu"
                 aria-labelledby="nav-user-menu-btn"
               >
-                <div className="auth-nav-dropdown-header">
-                  <p className="auth-nav-dropdown-name">{user.name ?? "User"}</p>
-                  <p className="auth-nav-dropdown-email">{user.email}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{roleLabel}</p>
-                  {user.departmentId && (
-                    <div className="auth-nav-dropdown-dept">
-                      <Building2 className="h-3 w-3" aria-hidden="true" />
-                      <span>Department assigned</span>
-                    </div>
-                  )}
+                <div className="auth-nav-dropdown-header flex items-center gap-3">
+                  <div
+                    className="auth-nav-avatar h-10 w-10 text-sm overflow-hidden shrink-0"
+                    aria-hidden="true"
+                  >
+                    {user.image ? (
+                      <img
+                        src={user.image}
+                        alt={user.name ?? "Avatar"}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : user.name ? (
+                      user.name.charAt(0).toUpperCase()
+                    ) : (
+                      <User className="h-4 w-4" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="auth-nav-dropdown-name truncate">{user.name ?? "User"}</p>
+                    <p className="auth-nav-dropdown-email">{user.email}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{roleLabel}</p>
+                    {user.departmentId && (
+                      <div className="auth-nav-dropdown-dept">
+                        <Building2 className="h-3 w-3" aria-hidden="true" />
+                        <span>Department assigned</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="auth-nav-dropdown-divider" />
+
                 <Link
                   href="/profile"
                   className="auth-nav-dropdown-item"
@@ -338,21 +382,9 @@ export default function AuthNav({ user, unreadCount: initialUnread = 0 }: AuthNa
                   <span>Profile</span>
                 </Link>
                 <div className="auth-nav-dropdown-divider" />
-                <button
-                  id="nav-logout-btn"
-                  type="button"
-                  className="auth-nav-dropdown-item auth-nav-logout"
-                  role="menuitem"
-                  onClick={handleLogout}
-                  disabled={isPending}
-                >
-                  {isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <LogOut className="h-4 w-4" aria-hidden="true" />
-                  )}
-                  <span>{isPending ? "Signing out…" : "Sign out"}</span>
-                </button>
+                <form action={logoutAction}>
+                  <SignOutButton />
+                </form>
               </div>
             )}
           </div>

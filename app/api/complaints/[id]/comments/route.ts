@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { addComment, getComplaintById } from "@/services/complaint.service";
-import { getErrorMessage } from "@/lib/utils";
+import { getClientSafeErrorMessage } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
@@ -49,7 +49,7 @@ export async function POST(
     const comment = await addComment(user, id, body);
     return NextResponse.json({ success: true, data: comment }, { status: 201 });
   } catch (error) {
-    const message = getErrorMessage(error);
+    const message = getClientSafeErrorMessage(error);
     const status = message.toLowerCase().includes("forbidden") ? 403 : 400;
     return NextResponse.json(
       { success: false, error: message },

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { formatDate } from "@/lib/utils";
+import { ProfileAvatarUploader } from "@/components/profile/ProfileAvatarUploader";
 
 export const metadata: Metadata = {
   title: "Profile",
@@ -23,6 +24,7 @@ export default async function ProfilePage() {
   const record = await prisma.user.findUnique({
     where: { id: sessionUser.id },
     select: {
+      image: true,
       name: true,
       email: true,
       firstName: true,
@@ -60,8 +62,13 @@ export default async function ProfilePage() {
     fields.push({ label: "Last sign-in", value: formatDate(record.lastLoginAt) });
   }
 
+  const currentUserWithImage = {
+    ...sessionUser,
+    image: record?.image ?? sessionUser.image,
+  };
+
   return (
-    <AppShell user={sessionUser} narrow>
+    <AppShell user={currentUserWithImage} narrow>
       <PageHeader
         title="Your profile"
         description="Account details used for CivicResolve sign-in and routing."
@@ -73,6 +80,11 @@ export default async function ProfilePage() {
             Back to dashboard
           </Link>
         }
+      />
+
+      <ProfileAvatarUploader
+        initialImage={record?.image ?? sessionUser.image}
+        name={displayName}
       />
 
       <dl className="divide-y divide-border rounded-lg border border-border bg-card">
@@ -89,3 +101,4 @@ export default async function ProfilePage() {
     </AppShell>
   );
 }
+

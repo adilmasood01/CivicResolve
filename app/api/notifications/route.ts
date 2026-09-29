@@ -5,7 +5,7 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
 } from "@/services/notification.service";
-import { getErrorMessage } from "@/lib/utils";
+import { getClientSafeErrorMessage } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
@@ -28,7 +28,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: true, ...result });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: getErrorMessage(error) },
+      { success: false, error: getClientSafeErrorMessage(error) },
       { status: 400 }
     );
   }
@@ -63,7 +63,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: getErrorMessage(error) },
+      { success: false, error: getClientSafeErrorMessage(error) },
       { status: 400 }
     );
   }

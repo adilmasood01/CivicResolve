@@ -55,8 +55,8 @@ export async function getUserNotifications(
     throw new Error("Authentication required");
   }
 
-  const page = options?.page ?? 1;
-  const pageSize = options?.pageSize ?? 15;
+  const page = Math.max(1, options?.page ?? 1);
+  const pageSize = Math.min(50, Math.max(1, options?.pageSize ?? 15));
   const skip = (page - 1) * pageSize;
 
   const whereCondition: any = { userId: user.id };

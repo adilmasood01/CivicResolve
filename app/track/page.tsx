@@ -7,6 +7,7 @@ import { ComplaintStatusBadge, STATUS_CONFIG } from "@/components/complaints/Com
 import { getPublicComplaintByNumber } from "@/services/complaint.service";
 import { trackComplaintSchema } from "@/schemas/complaint.schema";
 import { formatDate, formatDateTime } from "@/lib/utils";
+import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Track a complaint",
@@ -19,7 +20,7 @@ interface TrackPageProps {
 }
 
 export default async function TrackPage({ searchParams }: TrackPageProps) {
-  const params = await searchParams;
+  const [params, user] = await Promise.all([searchParams, getCurrentUser()]);
   const rawNumber = params.number?.trim() ?? "";
 
   let validationError: string | null = null;
@@ -43,7 +44,7 @@ export default async function TrackPage({ searchParams }: TrackPageProps) {
 
   return (
     <div className="landing-layout">
-      <PublicHeader currentPath="/track" />
+      <PublicHeader currentPath="/track" user={user} />
 
       <main className="public-page">
         <div className="public-page-inner">

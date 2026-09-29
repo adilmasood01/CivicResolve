@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getAttachmentForDownload } from "@/services/attachment.service";
-import { getErrorMessage } from "@/lib/utils";
+import { getClientSafeErrorMessage } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
@@ -25,20 +25,21 @@ export async function GET(
       attachmentId
     );
 
-    // Force UTF-8 safe filename for Content-Disposition header
     const encodedFileName = encodeURIComponent(attachment.fileName);
 
+    // Prefer attachment disposition to avoid drive-by PDF/script execution in-browser
     return new NextResponse(new Uint8Array(fileBuffer), {
       status: 200,
       headers: {
         "Content-Type": attachment.fileType || "application/octet-stream",
         "Content-Length": attachment.fileSize.toString(),
-        "Content-Disposition": `inline; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`,
-        "Cache-Control": "private, max-age=3600",
+        "Content-Disposition": `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`,
+        "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "private, no-store",
       },
     });
   } catch (error) {
-    const message = getErrorMessage(error);
+    const message = getClientSafeErrorMessage(error);
     const status = message.toLowerCase().includes("forbidden") ? 403 : 404;
     return NextResponse.json({ success: false, error: message }, { status });
   }

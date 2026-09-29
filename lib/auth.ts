@@ -13,13 +13,16 @@
 
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import { can, type Action, type PermissionComplaint } from "@/lib/permissions";
 import type { Role } from "@prisma/client";
 import type { SessionUser } from "@/types";
 
 /**
  * Returns the current authenticated user from the session, or null.
- * Safe to call from any Server Component or Route Handler.
+ * Revalidates role, departmentId, and isActive against the database so
+ * deactivated users and role changes take effect on the next server request
+ * (API routes / Server Actions / RSC). Middleware JWT remains a coarse gate.
  *
  * NEVER expose this user object directly to the client — it may be used
  * for authorization logic and must remain server-side.
@@ -29,24 +32,30 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 
   if (!session?.user?.id) return null;
 
-  // Use type assertion to access augmented session fields
-  // The actual runtime values are populated by auth.ts callbacks
-  const u = session.user as {
-    id: string;
-    email?: string | null;
-    name?: string | null;
-    image?: string | null;
-    role?: Role;
-    departmentId?: string | null;
-  };
+  const dbUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      image: true,
+      role: true,
+      departmentId: true,
+      isActive: true,
+    },
+  });
+
+  if (!dbUser || !dbUser.isActive) {
+    return null;
+  }
 
   return {
-    id: u.id,
-    email: u.email ?? "",
-    name: u.name ?? null,
-    role: (u.role ?? "CITIZEN") as Role,
-    departmentId: u.departmentId ?? null,
-    image: u.image ?? null,
+    id: dbUser.id,
+    email: dbUser.email,
+    name: dbUser.name ?? null,
+    role: dbUser.role,
+    departmentId: dbUser.departmentId,
+    image: dbUser.image ?? null,
   };
 }
 
@@ -133,20 +142,6 @@ export async function checkPermission(
   );
 }
 
-/**
- * Maps a User Role enum string to the corresponding dashboard path.
- */
-export function getDashboardPath(role: string): string {
-  switch (role) {
-    case "ADMIN":
-      return "/admin/dashboard";
-    case "DEPARTMENT_MANAGER":
-      return "/manager/dashboard";
-    case "OFFICER":
-      return "/staff/dashboard";
-    case "CITIZEN":
-    default:
-      return "/dashboard";
-  }
-}
+export { getDashboardPath } from "@/lib/route-access";
+
 

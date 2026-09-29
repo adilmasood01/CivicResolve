@@ -15,7 +15,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { loginAction } from "@/app/actions/auth";
@@ -104,6 +103,8 @@ function LoginForm() {
 
       {/* Form */}
       <form
+        method="post"
+        action="/login"
         onSubmit={handleSubmit(onSubmit)}
         noValidate
         className="auth-form"
@@ -173,8 +174,8 @@ function LoginForm() {
           )}
         </div>
 
-        {/* Submit */}
-        <Button
+        {/* Submit — native button so type="submit" is reliable (Base UI forces type="button") */}
+        <button
           id="login-submit"
           type="submit"
           disabled={isPending}
@@ -189,7 +190,7 @@ function LoginForm() {
           ) : (
             "Sign In"
           )}
-        </Button>
+        </button>
       </form>
 
       {/* Footer */}

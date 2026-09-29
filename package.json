@@ -7,11 +7,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx tests/admin-auth-matrix.test.ts && tsx tests/phase6-analytics-reports.test.ts && tsx tests/audit-remediation.test.ts",
+    "test": "tsx tests/admin-auth-matrix.test.ts && tsx tests/phase6-analytics-reports.test.ts && tsx tests/audit-remediation.test.ts && tsx tests/phase7-security.test.ts",
+    "test:integration": "tsx tests/integration.optional.test.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "db:generate": "prisma generate",
-    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts",
+    "db:reset": "prisma migrate reset --force",
+    "db:studio": "prisma studio",
     "postinstall": "prisma generate"
   },
   "prisma": {
@@ -47,6 +52,7 @@
     "zod": "^4.6.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
+import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "About",
@@ -27,10 +28,12 @@ const STEPS = [
   },
 ];
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const user = await getCurrentUser();
+
   return (
     <div className="landing-layout">
-      <PublicHeader currentPath="/about" />
+      <PublicHeader currentPath="/about" user={user} />
 
       <main className="public-page">
         <div className="public-page-inner">

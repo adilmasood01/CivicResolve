@@ -1,9 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import { getComplaints } from "@/services/complaint.service";
-import { getSystemKPIs, getDepartmentPerformance } from "@/services/analytics.service";
+import {
+  getSystemKPIs,
+  getDepartmentPerformance,
+  getDepartmentAnalytics,
+} from "@/services/analytics.service";
 import type { SessionUser } from "@/types";
 import type { FilterComplaintInput } from "@/schemas/complaint.schema";
 import PDFDocument from "pdfkit";
+
+export const EXPORT_MAX_RECORDS = 2000;
+const EXPORT_PAGE_SIZE = 100;
 
 // ─────────────────────────────────────────────────────────────
 // CSV FORMULA INJECTION SANITIZER
@@ -20,24 +27,42 @@ export function sanitizeCSVCell(value: string | number | null | undefined): stri
   return `"${str}"`;
 }
 
+/**
+ * Collect role-scoped complaints for export without exceeding schema pageSize max.
+ */
+async function collectComplaintsForExport(
+  user: SessionUser,
+  rawFilters: FilterComplaintInput
+) {
+  const complaints: Awaited<ReturnType<typeof getComplaints>>["data"] = [];
+  let page = 1;
+
+  while (complaints.length < EXPORT_MAX_RECORDS) {
+    const { data, meta } = await getComplaints(user, {
+      ...rawFilters,
+      page,
+      pageSize: EXPORT_PAGE_SIZE,
+    });
+    complaints.push(...data);
+    if (!meta.hasNextPage || data.length === 0) break;
+    page += 1;
+  }
+
+  return complaints.slice(0, EXPORT_MAX_RECORDS);
+}
+
 // ─────────────────────────────────────────────────────────────
 // 1. GENERATE CSV COMPLAINTS EXPORT
 // ─────────────────────────────────────────────────────────────
-export async function generateComplaintsCSV(user: SessionUser, rawFilters: FilterComplaintInput): Promise<string> {
+export async function generateComplaintsCSV(
+  user: SessionUser,
+  rawFilters: FilterComplaintInput
+): Promise<string> {
   if (!user || !user.id) throw new Error("Authentication required");
 
-  // Force max limit 10,000 for exports
-  const filters: FilterComplaintInput = {
-    ...rawFilters,
-    page: 1,
-    pageSize: 10000,
-  };
-
-  const { data: complaints } = await getComplaints(user, filters);
-
+  const complaints = await collectComplaintsForExport(user, rawFilters);
   const isCitizen = user.role === "CITIZEN";
 
-  // Build CSV Headers
   const headers = isCitizen
     ? ["Complaint #", "Title", "Category", "Status", "Priority", "Location", "Date Created", "Resolved Date"]
     : [
@@ -89,7 +114,6 @@ export async function generateComplaintsCSV(user: SessionUser, rawFilters: Filte
     }
   }
 
-  // Create Audit Log
   await prisma.auditLog.create({
     data: {
       actorId: user.id,
@@ -108,10 +132,46 @@ export async function generateComplaintsCSV(user: SessionUser, rawFilters: Filte
 // ─────────────────────────────────────────────────────────────
 // 2. GENERATE COMPLAINT SUMMARY PDF REPORT
 // ─────────────────────────────────────────────────────────────
-export async function generateComplaintSummaryPDF(user: SessionUser, rawFilters: FilterComplaintInput): Promise<Buffer> {
+export async function generateComplaintSummaryPDF(
+  user: SessionUser,
+  rawFilters: FilterComplaintInput
+): Promise<Buffer> {
   if (!user || !user.id) throw new Error("Authentication required");
 
-  const kpis = await getSystemKPIs(user, { range: "30d" });
+  // Citizens/officers: scoped complaint summary (no system analytics permission required)
+  // Managers/admins: KPI summary via analytics service
+  let summaryLines: string[] = [];
+
+  if (user.role === "ADMIN" || user.role === "DEPARTMENT_MANAGER") {
+    const kpis = await getSystemKPIs(user, { range: "30d" });
+    summaryLines = [
+      `Total Complaints: ${kpis.totalComplaints}`,
+      `Open Complaints: ${kpis.openComplaints}`,
+      `Resolved Complaints: ${kpis.resolvedComplaints}`,
+      `Resolution Rate: ${kpis.resolutionRatePercent}%`,
+      `SLA Compliance Rate: ${kpis.slaCompliancePercent}%`,
+      `Active SLA Breaches: ${kpis.slaBreaches}`,
+      `Average Resolution Time: ${kpis.avgResolutionHours} hours`,
+    ];
+  } else {
+    const complaints = await collectComplaintsForExport(user, {
+      ...rawFilters,
+      page: 1,
+      pageSize: EXPORT_PAGE_SIZE,
+    });
+    const open = complaints.filter(
+      (c) => !["RESOLVED", "CLOSED", "REJECTED"].includes(c.status)
+    ).length;
+    const resolved = complaints.filter((c) =>
+      ["RESOLVED", "CLOSED"].includes(c.status)
+    ).length;
+    summaryLines = [
+      `Complaints in export scope: ${complaints.length}`,
+      `Open (in sample): ${open}`,
+      `Resolved/Closed (in sample): ${resolved}`,
+      `Note: Summary is scoped to your authorized complaints (max ${EXPORT_MAX_RECORDS}).`,
+    ];
+  }
 
   return new Promise<Buffer>((resolve, reject) => {
     try {
@@ -122,7 +182,6 @@ export async function generateComplaintSummaryPDF(user: SessionUser, rawFilters:
       doc.on("end", async () => {
         const pdfData = Buffer.concat(buffers);
 
-        // Audit log
         await prisma.auditLog.create({
           data: {
             actorId: user.id,
@@ -135,27 +194,32 @@ export async function generateComplaintSummaryPDF(user: SessionUser, rawFilters:
         resolve(pdfData);
       });
 
-      // PDF Content
-      doc.fillColor("#1E3A8A").fontSize(20).text("CivicResolve — Complaint Summary Report", { align: "center" });
+      doc
+        .fillColor("#1E3A8A")
+        .fontSize(20)
+        .text("CivicResolve — Complaint Summary Report", { align: "center" });
       doc.moveDown(0.5);
-      doc.fillColor("#4B5563").fontSize(10).text(`Generated On: ${new Date().toLocaleString()} | Requested By: ${user.name || user.email} (${user.role})`, { align: "center" });
+      doc
+        .fillColor("#4B5563")
+        .fontSize(10)
+        .text(
+          `Generated On: ${new Date().toLocaleString()} | Requested By: ${user.name || user.email} (${user.role})`,
+          { align: "center" }
+        );
       doc.moveDown(1.5);
 
-      // Section: Overview KPIs
-      doc.fillColor("#111827").fontSize(14).text("Executive Summary (Last 30 Days)", { underline: true });
+      doc.fillColor("#111827").fontSize(14).text("Summary", { underline: true });
       doc.moveDown(0.5);
-
       doc.fontSize(10).fillColor("#374151");
-      doc.text(`• Total Complaints: ${kpis.totalComplaints}`);
-      doc.text(`• Open Complaints: ${kpis.openComplaints}`);
-      doc.text(`• Resolved Complaints: ${kpis.resolvedComplaints}`);
-      doc.text(`• Resolution Rate: ${kpis.resolutionRatePercent}%`);
-      doc.text(`• SLA Compliance Rate: ${kpis.slaCompliancePercent}%`);
-      doc.text(`• Active SLA Breaches: ${kpis.slaBreaches}`);
-      doc.text(`• Average Resolution Time: ${kpis.avgResolutionHours} hours`);
+      for (const line of summaryLines) {
+        doc.text(`• ${line}`);
+      }
 
       doc.moveDown(1.5);
-      doc.fillColor("#9CA3AF").fontSize(8).text("CivicResolve Automated Reporting Engine — Confidential Government Report", { align: "center" });
+      doc
+        .fillColor("#9CA3AF")
+        .fontSize(8)
+        .text("CivicResolve Automated Reporting Engine", { align: "center" });
 
       doc.end();
     } catch (err) {
@@ -167,15 +231,48 @@ export async function generateComplaintSummaryPDF(user: SessionUser, rawFilters:
 // ─────────────────────────────────────────────────────────────
 // 3. GENERATE DEPARTMENT PERFORMANCE PDF REPORT
 // ─────────────────────────────────────────────────────────────
-export async function generateDepartmentPerformancePDF(user: SessionUser): Promise<Buffer> {
+export async function generateDepartmentPerformancePDF(
+  user: SessionUser
+): Promise<Buffer> {
   if (!user || !user.id) throw new Error("Authentication required");
   if (user.role !== "ADMIN" && user.role !== "DEPARTMENT_MANAGER") {
     throw new Error("Forbidden: Department performance PDF generation access denied.");
   }
 
-  const perfList = user.role === "ADMIN"
-    ? await getDepartmentPerformance(user, { range: "30d" })
-    : [];
+  const perfList: Array<{
+    departmentName: string;
+    departmentCode: string;
+    totalComplaints: number;
+    openComplaints: number;
+    resolvedComplaints: number;
+    resolutionRatePercent: number;
+    slaCompliancePercent: number;
+    slaBreaches: number;
+    avgResolutionHours: number;
+  }> = [];
+
+  if (user.role === "ADMIN") {
+    const rows = await getDepartmentPerformance(user, { range: "30d" });
+    perfList.push(...rows);
+  } else {
+    if (!user.departmentId) {
+      throw new Error("Forbidden: Department manager has no assigned department.");
+    }
+    const analytics = await getDepartmentAnalytics(user, user.departmentId, {
+      range: "30d",
+    });
+    perfList.push({
+      departmentName: analytics.department.name,
+      departmentCode: analytics.department.code,
+      totalComplaints: analytics.kpis.totalComplaints,
+      openComplaints: analytics.kpis.openComplaints,
+      resolvedComplaints: analytics.kpis.resolvedComplaints,
+      resolutionRatePercent: analytics.kpis.resolutionRatePercent,
+      slaCompliancePercent: analytics.kpis.slaCompliancePercent,
+      slaBreaches: analytics.kpis.slaBreaches,
+      avgResolutionHours: analytics.kpis.avgResolutionHours,
+    });
+  }
 
   return new Promise<Buffer>((resolve, reject) => {
     try {
@@ -198,29 +295,51 @@ export async function generateDepartmentPerformancePDF(user: SessionUser): Promi
         resolve(pdfData);
       });
 
-      doc.fillColor("#1E3A8A").fontSize(20).text("CivicResolve — Department Performance Report", { align: "center" });
+      doc
+        .fillColor("#1E3A8A")
+        .fontSize(20)
+        .text("CivicResolve — Department Performance Report", { align: "center" });
       doc.moveDown(0.5);
-      doc.fillColor("#4B5563").fontSize(10).text(`Generated On: ${new Date().toLocaleString()} | Scoped for: ${user.role}`, { align: "center" });
+      doc
+        .fillColor("#4B5563")
+        .fontSize(10)
+        .text(
+          `Generated On: ${new Date().toLocaleString()} | Scoped for: ${user.role}`,
+          { align: "center" }
+        );
       doc.moveDown(1.5);
 
-      if (user.role === "ADMIN") {
-        doc.fillColor("#111827").fontSize(14).text("Department Metrics Breakdown", { underline: true });
-        doc.moveDown(0.8);
+      doc.fillColor("#111827").fontSize(14).text("Department Metrics", { underline: true });
+      doc.moveDown(0.8);
 
-        for (const dept of perfList) {
-          doc.fontSize(11).fillColor("#1D4ED8").text(`${dept.departmentName} (${dept.departmentCode})`);
-          doc.fontSize(9).fillColor("#374151");
-          doc.text(`   Total Complaints: ${dept.totalComplaints} | Open: ${dept.openComplaints} | Resolved: ${dept.resolvedComplaints}`);
-          doc.text(`   Resolution Rate: ${dept.resolutionRatePercent}% | SLA Compliance: ${dept.slaCompliancePercent}% | Breaches: ${dept.slaBreaches}`);
-          doc.text(`   Avg Resolution Time: ${dept.avgResolutionHours} hrs`);
-          doc.moveDown(0.5);
-        }
-      } else {
-        doc.fillColor("#111827").fontSize(12).text(`Department Scoped Performance Report for Department ID: ${user.departmentId}`);
+      if (perfList.length === 0) {
+        doc
+          .fontSize(10)
+          .fillColor("#374151")
+          .text("No department metrics available for your scope.");
+      }
+
+      for (const dept of perfList) {
+        doc
+          .fontSize(11)
+          .fillColor("#1D4ED8")
+          .text(`${dept.departmentName} (${dept.departmentCode})`);
+        doc.fontSize(9).fillColor("#374151");
+        doc.text(
+          `   Total Complaints: ${dept.totalComplaints} | Open: ${dept.openComplaints} | Resolved: ${dept.resolvedComplaints}`
+        );
+        doc.text(
+          `   Resolution Rate: ${dept.resolutionRatePercent}% | SLA Compliance: ${dept.slaCompliancePercent}% | Breaches: ${dept.slaBreaches}`
+        );
+        doc.text(`   Avg Resolution Time: ${dept.avgResolutionHours} hrs`);
+        doc.moveDown(0.5);
       }
 
       doc.moveDown(1.5);
-      doc.fillColor("#9CA3AF").fontSize(8).text("CivicResolve Automated Reporting Engine", { align: "center" });
+      doc
+        .fillColor("#9CA3AF")
+        .fontSize(8)
+        .text("CivicResolve Automated Reporting Engine", { align: "center" });
 
       doc.end();
     } catch (err) {
