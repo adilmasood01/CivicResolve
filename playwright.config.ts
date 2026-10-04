@@ -35,7 +35,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: process.env.E2E_WEB_SERVER_COMMAND || "npm run dev",
+    command: process.env.E2E_WEB_SERVER_COMMAND || `npm run dev -- -p ${PORT}`,
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

@@ -17,7 +17,7 @@ interface ComplaintFormClientProps {
 }
 
 const fieldClass =
-  "w-full rounded-md border border-border bg-background p-2.5 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20";
+  "w-full rounded-md border border-border bg-background p-2.5 min-h-[44px] text-base sm:text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20";
 
 export default function ComplaintFormClient({ categories }: ComplaintFormClientProps) {
   const router = useRouter();
@@ -235,7 +235,7 @@ export default function ComplaintFormClient({ categories }: ComplaintFormClientP
         <button
           type="submit"
           disabled={isPending || !title || !categoryId || !description || !location}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50 sm:w-auto sm:py-2.5 min-h-[48px]"
         >
           {isPending ? (
             <>

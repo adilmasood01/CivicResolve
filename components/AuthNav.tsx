@@ -227,7 +227,7 @@ export default function AuthNav({ user, unreadCount: initialUnread = 0 }: AuthNa
             </button>
 
             {notifMenuOpen && (
-              <div className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-lg border border-border bg-card text-xs shadow-lg sm:w-96">
+              <div className="absolute right-0 z-50 mt-2 w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-lg border border-border bg-card text-xs shadow-lg sm:w-96">
                 <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
                   <span className="font-medium text-foreground">Notifications</span>
                   {unreadCount > 0 && (
@@ -393,18 +393,18 @@ export default function AuthNav({ user, unreadCount: initialUnread = 0 }: AuthNa
 
       {mobileNavOpen && (
         <nav
-          className="border-t border-border px-4 py-2 md:hidden"
+          className="border-t border-border bg-card px-3 py-2.5 shadow-sm md:hidden"
           aria-label="Mobile primary"
         >
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-1">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={
                   isActive(pathname, link.href)
-                    ? "auth-nav-link auth-nav-link-active"
-                    : "auth-nav-link"
+                    ? "auth-nav-link auth-nav-link-active flex min-h-[44px] items-center rounded-md px-3 text-sm font-medium"
+                    : "auth-nav-link flex min-h-[44px] items-center rounded-md px-3 text-sm font-medium"
                 }
               >
                 {link.label}

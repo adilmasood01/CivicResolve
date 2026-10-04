@@ -91,6 +91,29 @@ export default function PublicHeader({ currentPath, user }: PublicHeaderProps) {
     }
   }, [userMenuOpen]);
 
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+        setUserMenuOpen(false);
+      }
+    }
+    if (open || userMenuOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [open, userMenuOpen]);
+
+  useEffect(() => {
+    function handleResize() {
+      if (window.innerWidth >= 640) {
+        setOpen(false);
+      }
+    }
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const dashboardPath = sessionUser
     ? getDashboardPath(sessionUser.role)
     : "/dashboard";

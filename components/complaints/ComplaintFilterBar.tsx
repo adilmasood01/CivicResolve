@@ -14,7 +14,7 @@ interface ComplaintFilterBarProps {
 }
 
 const selectClass =
-  "h-8 rounded-md border border-border bg-card px-2 text-xs text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40";
+  "min-h-[40px] sm:min-h-0 sm:h-8 rounded-md border border-border bg-card px-2.5 sm:px-2 text-sm sm:text-xs text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40";
 
 export function ComplaintFilterBar({
   showDepartmentFilter = false,

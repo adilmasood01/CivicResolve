@@ -192,7 +192,7 @@ export function CommentSection({
               ? "Write an internal note for staff…"
               : "Write a comment or response…"
           }
-          className="w-full rounded-md border border-border bg-background p-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="w-full rounded-md border border-border bg-background p-3 text-base sm:text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
           required
         />
 
@@ -200,7 +200,7 @@ export function CommentSection({
           <button
             type="submit"
             disabled={isPending || !content.trim()}
-            className={`inline-flex items-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium text-white transition-opacity disabled:opacity-50 ${
+            className={`inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium text-white transition-opacity disabled:opacity-50 sm:w-auto min-h-[44px] ${
               commentType === "INTERNAL_NOTE"
                 ? "bg-amber-700 hover:opacity-90"
                 : "bg-primary hover:opacity-90"
